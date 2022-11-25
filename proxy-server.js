@@ -1,9 +1,15 @@
+require('dotenv').config();
 const express = require('express');
 const bodyParser = require('body-parser');
 const gremlin = require('gremlin');
 const cors = require('cors');
 const app = express();
 const port = 3001;
+
+
+const DATABASE = process.env.DATABASE;
+const COLLECTION = process.env.COLLECTION;
+const COSMOSDB_KEY = process.env.COSMOSDB_KEY;
 
 app.use(cors({
   credentials: true,
@@ -16,7 +22,7 @@ function mapToObj(inputMap) {
   let obj = {};
 
   inputMap.forEach((value, key) => {
-    obj[key] = value
+    obj[key] = value;
   });
 
   return obj;
@@ -45,9 +51,71 @@ function nodesToJson(nodeList) {
   );
 }
 
+function convertEdges(edgeList) {
+  return edgeList.map(
+    edge => ({
+      id: edge.id,
+      from: edge.from,
+      to: edge.to,
+      label: edge.label,
+      properties: convertProperties(edge.properties),
+    })
+  );
+}
+
+function convertNodes(nodeList) {
+  return nodeList
+  .map(
+    node => ({
+      id: node.id,
+      label: node.label,
+      properties:convertProperties(node.properties),
+      edges:convertEdges(node.edges)
+    })
+  );
+}
+
+function convertProperties(p){
+
+  let properties = {};
+
+  Object.entries(p).forEach( (value, key) => properties[key]= value[0] );
+
+  return properties;
+}
+
+
 function makeQuery(query, nodeLimit) {
   const nodeLimitQuery = !isNaN(nodeLimit) && Number(nodeLimit) > 0 ? `.limit(${nodeLimit})`: '';
   return `${query}${nodeLimitQuery}.dedup().as('node').project('id', 'label', 'properties', 'edges').by(__.id()).by(__.label()).by(__.valueMap().by(__.unfold())).by(__.outE().project('id', 'from', 'to', 'label', 'properties').by(__.id()).by(__.select('node').id()).by(__.inV().id()).by(__.label()).by(__.valueMap().by(__.unfold())).fold())`;
+}
+
+function makeCosmosQuery(query, nodeLimit) {
+  const nodeLimitQuery = !isNaN(nodeLimit) && Number(nodeLimit) > 0 ? `.limit(${nodeLimit})`: '';
+  return `${query}${nodeLimitQuery}.dedup().as('node').project('id', 'label', 'properties', 'edges').by(__.id()).by(__.label()).by(__.valueMap()).by(__.outE().project('id', 'from', 'to', 'label', 'properties').by(__.id()).by(__.select('node').id() ).by(__.inV().id()).by(__.label()).by(__.valueMap()).fold())`;
+}
+
+async function handleRequest(gremlinHost, gremlinPort, query, nodeLimit) {
+  const client =  new gremlin.driver.Client(`ws://${gremlinHost}:${gremlinPort}/gremlin`, { traversalSource: 'g', mimeType: 'application/json' });
+
+  const result = await client.submit(makeQuery(query, nodeLimit), {});
+  
+  return nodesToJson(result._items);
+}
+
+async function handleCosmosRequest(gremlinHost, gremlinPort, query, nodeLimit) {
+  const authenticator = new gremlin.driver.auth.PlainTextSaslAuthenticator(`/dbs/${DATABASE}/colls/${COLLECTION}`, COSMOSDB_KEY);
+  const client =  new gremlin.driver.Client(`ws://${gremlinHost}:${gremlinPort}/gremlin`, 
+    { 
+      authenticator,
+      traversalSource: 'g', 
+      mimeType: 'application/vnd.gremlin-v2.0+json' 
+    }
+  );  
+
+  const result = await client.submit(makeCosmosQuery(query, nodeLimit), {});
+
+  return convertNodes(result._items);
 }
 
 app.post('/query', (req, res, next) => {
@@ -56,10 +124,16 @@ app.post('/query', (req, res, next) => {
   const nodeLimit = req.body.nodeLimit;
   const query = req.body.query;
 
-  const client = new gremlin.driver.Client(`ws://${gremlinHost}:${gremlinPort}/gremlin`, { traversalSource: 'g', mimeType: 'application/json' });
+  const cosmosDBMode = COSMOSDB_KEY!=undefined;
 
-  client.submit(makeQuery(query, nodeLimit), {})
-    .then((result) => res.send(nodesToJson(result._items)))
+
+  if(cosmosDBMode)
+    handleCosmosRequest(gremlinHost, gremlinPort, query, nodeLimit)
+    .then((result) => res.send(result))
+    .catch((err) => next(err));
+  else 
+    handleRequest(gremlinHost, gremlinPort, query, nodeLimit)
+    .then((result) => res.send(result))
     .catch((err) => next(err));
 
 });

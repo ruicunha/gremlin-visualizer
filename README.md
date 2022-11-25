@@ -66,6 +66,13 @@ The Docker container can be stopped by calling `docker stop gremlin-visualizer`.
 * View the set of queries executed to generate the graph
 * Traverse in/out from the selected node
 
+### Support for CosmosDB
+* To connect to a CosmosDB add the following env vars before launching the app:
+* * DATABASE=< DATABASE >
+* * COLLECTION=< COLLECTION >
+* * COSMOSDB_KEY=< PRIVATE_KEY >
+* Cosmos DB emulator is supported
+
 ### 
 ## Contributors
 * Umesh Jayasinghe (Github: prabushitha)
