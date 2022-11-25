@@ -79,7 +79,10 @@ function convertProperties(p){
 
   let properties = {};
 
-  Object.entries(p).forEach( (key, value) => properties[key]= value[0] );
+  Object.entries(p).forEach( entry => {
+    const[ key, value ] = entry;
+    properties[key]= value[0]; 
+  });
 
   return properties;
 }
@@ -133,7 +136,7 @@ app.post('/query', (req, res, next) => {
     .catch((err) => next(err));
   else 
     handleRequest(gremlinHost, gremlinPort, query, nodeLimit)
-    .then((result) => res.send(result))
+        .then((result) => res.send(result))
     .catch((err) => next(err));
 
 });
