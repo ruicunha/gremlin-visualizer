@@ -46,6 +46,8 @@ The Docker image can then be run by calling `docker run` and exposing the necess
 ```sh
 # if you built the image yourself
 docker run --rm -d -p 3000:3000 -p 3001:3001 --name=gremlin-visualizer --network=host gremlin-visualizer:latest
+# if to run against CosmosDB
+docker run --rm -d -p 3000:3000 -p 3001:3001 --name=gremlin-visualizer --env-file .env --network=host gremlin-visualizer:latest
 # if you downloaded from Docker Hub
 docker run --rm -d -p 3000:3000 -p 3001:3001 --name=gremlin-visualizer --network=host prabushitha/gremlin-visualizer:latest
 ```
@@ -68,9 +70,9 @@ The Docker container can be stopped by calling `docker stop gremlin-visualizer`.
 
 ### Support for CosmosDB
 * To connect to a CosmosDB add the following env vars before launching the app:
-* * DATABASE=< DATABASE >
-* * COLLECTION=< COLLECTION >
-* * COSMOSDB_KEY=< PRIVATE_KEY >
+* * DATABASE=`<DATABASE>`
+* * COLLECTION=`<COLLECTION>`
+* * COSMOSDB_KEY=`<PRIVATE_KEY>`
 * Cosmos DB emulator is supported
 
 ### 
