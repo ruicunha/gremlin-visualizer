@@ -79,7 +79,7 @@ function convertProperties(p){
 
   let properties = {};
 
-  Object.entries(p).forEach( (value, key) => properties[key]= value[0] );
+  Object.entries(p).forEach( (key, value) => properties[key]= value[0] );
 
   return properties;
 }
