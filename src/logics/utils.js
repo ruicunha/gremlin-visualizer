@@ -19,17 +19,33 @@ export const extractEdgesAndNodes = (nodeList, nodeLabels=[]) => {
   const nodes = [];
 
   const nodeLabelMap =_.mapValues( _.keyBy(nodeLabels, 'type'), 'field');
-
+  console.log(nodeLabelMap);
+  
   _.forEach(nodeList, (node) => {
+
+    console.log(node);
+    console.log(node.label)
+
     const type = node.label;
     if (!nodeLabelMap[type]) {
-      const field = selectRandomField(node.properties);
+      const field = node.properties.kind && node.properties.name? 'kind,name':selectRandomField(node.properties);
       const nodeLabel = { type, field };
+      console.log(nodeLabel);
       nodeLabels.push(nodeLabel);
       nodeLabelMap[type] = field;
     }
     const labelField = nodeLabelMap[type];
-    const label = labelField in node.properties ? node.properties[labelField] : type;
+
+    let label="";
+    if(!(labelField.indexOf(',')>=0)){
+      label = labelField in node.properties ? node.properties[labelField] : type;
+    }else {
+      _.forEach(labelField.split(','), (field) => {
+        label+="/"+node.properties[field];
+      })
+      label=label.substring(1);
+    }
+
     nodes.push({ id: node.id, label: String(label), group: node.label, properties: node.properties, type });
 
     edges = edges.concat(_.map(node.edges, edge => ({ ...edge, type: edge.label, arrows: { to: { enabled: true, scaleFactor: 0.5 } } })));
@@ -37,6 +53,7 @@ export const extractEdgesAndNodes = (nodeList, nodeLabels=[]) => {
 
   return { edges, nodes, nodeLabels }
 };
+
 
 export const findNodeById = (nodeList, id) => {
   return _.find(nodeList, node => node.id === id);

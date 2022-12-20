@@ -2,8 +2,8 @@ import { ACTIONS } from '../constants';
 
 const initialState = {
   host: 'localhost',
-  port: '8182',
-  query: '',
+  port: '8901',
+  query: 'g.V()',
   error: null
 };
 
