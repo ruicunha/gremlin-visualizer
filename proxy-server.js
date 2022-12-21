@@ -22,6 +22,7 @@ function mapToObj(inputMap) {
   let obj = {};
 
   inputMap.forEach((value, key) => {
+   
     obj[key] = value;
   });
 
@@ -81,7 +82,13 @@ function convertProperties(p){
 
   Object.entries(p).forEach( entry => {
     const[ key, value ] = entry;
-    properties[key]= value[0]; 
+
+    if(value.length>1){
+      properties[key]= value; 
+    }else{
+      properties[key]= value[0]; 
+    }
+
   });
 
   return properties;
