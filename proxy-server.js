@@ -53,6 +53,7 @@ function nodesToJson(nodeList) {
 }
 
 function convertEdges(edgeList) {
+
   return edgeList.map(
     edge => ({
       id: edge.id,
@@ -83,12 +84,18 @@ function convertProperties(p){
   Object.entries(p).forEach( entry => {
     const[ key, value ] = entry;
 
-    if(value.length>1){
-      properties[key]= value; 
-    }else{
-      properties[key]= value[0]; 
-    }
+    if(Array.isArray(value)){
 
+      if(value.length>1){
+        properties[key]= value; 
+      }else{
+        properties[key]= value[0]; 
+      }
+
+    }else {
+      properties[key]= value;
+    }
+  
   });
 
   return properties;
