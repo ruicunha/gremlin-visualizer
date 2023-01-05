@@ -48,12 +48,16 @@ export const extractEdgesAndNodes = (nodeList, nodeLabels=[]) => {
 
     nodes.push({ id: node.id, label: String(label), group: node.label, properties: node.properties, type });
 
-    edges = edges.concat(_.map(node.edges, edge => ({ ...edge, type: edge.label, arrows: { to: { enabled: true, scaleFactor: 0.5 } } })));
+    edges = edges.concat(_.map(node.edges, edge => ({ ...edge, label:getEdgeLabel(edge), type: edge.label, arrows: { to: { enabled: true, scaleFactor: 0.5 } } })));
+
   });
 
   return { edges, nodes, nodeLabels }
 };
 
+export const getEdgeLabel = (edge) => {
+  return edge.properties.field?  edge.label+" : "+ edge.properties.field: edge.label;
+};
 
 export const findNodeById = (nodeList, id) => {
   return _.find(nodeList, node => node.id === id);
