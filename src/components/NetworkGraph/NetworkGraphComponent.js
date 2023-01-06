@@ -18,7 +18,7 @@ class NetworkGraph extends React.Component{
 
     network.on("dragEnd", function (params) {
 
-     if(network.options['physicsOnDrag']!=undefined){
+     if(network.options['physicsOnDrag']!==undefined){
 
         const nodeId = params.nodes && params.nodes.length > 0 ? params.nodes[0] : null;
         if(nodeId!=null){

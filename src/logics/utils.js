@@ -28,8 +28,7 @@ export const extractEdgesAndNodes = (nodeList, nodeLabels=[]) => {
 
     const type = node.label;
     if (!nodeLabelMap[type]) {
-    //  const field = node.properties.kind && node.properties.name? 'kind,name':selectRandomField(node.properties);
-      const field = 'name';
+      const field = node.properties.kind && node.properties.name? 'name':selectRandomField(node.properties);
       const nodeLabel = { type, field };
       console.log(nodeLabel);
       nodeLabels.push(nodeLabel);
