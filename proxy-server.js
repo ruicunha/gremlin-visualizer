@@ -113,7 +113,7 @@ function makeCosmosQuery(query, nodeLimit) {
 }
 
 async function handleRequest(gremlinHost, gremlinPort, query, nodeLimit) {
-  const client =  new gremlin.driver.Client(`ws://${gremlinHost}:${gremlinPort}/gremlin`, { traversalSource: 'g', mimeType: 'application/json' });
+  const client =  new gremlin.driver.Client(`${gremlinHost}:${gremlinPort}/gremlin`, { traversalSource: 'g', mimeType: 'application/json' });
 
   const result = await client.submit(makeQuery(query, nodeLimit), {});
   
@@ -122,7 +122,7 @@ async function handleRequest(gremlinHost, gremlinPort, query, nodeLimit) {
 
 async function handleCosmosRequest(gremlinHost, gremlinPort, query, nodeLimit) {
   const authenticator = new gremlin.driver.auth.PlainTextSaslAuthenticator(`/dbs/${DATABASE}/colls/${COLLECTION}`, COSMOSDB_KEY);
-  const client =  new gremlin.driver.Client(`ws://${gremlinHost}:${gremlinPort}/gremlin`, 
+  const client =  new gremlin.driver.Client(`${gremlinHost}:${gremlinPort}/gremlin`, 
     { 
       authenticator,
       traversalSource: 'g', 
