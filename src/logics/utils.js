@@ -37,7 +37,7 @@ export const extractEdgesAndNodes = (nodeList, nodeLabels=[]) => {
     const labelField = nodeLabelMap[type];
 
     let label="";
-    if(!(labelField.indexOf(',')>=0)){
+    if(!labelField.includes(',')){
       label = labelField in node.properties ? node.properties[labelField] : type;
     }else {
       _.forEach(labelField.split(','), (field) => {
@@ -48,7 +48,7 @@ export const extractEdgesAndNodes = (nodeList, nodeLabels=[]) => {
 
     nodes.push({ id: node.id, label: String(label), group: node.label, properties: node.properties, type });
 
-    edges = edges.concat(_.map(node.edges, edge => ({ ...edge, label:getEdgeLabel(edge), type: edge.label, arrows: { to: { enabled: true, scaleFactor: 0.5 } } })));
+    edges = edges.concat(_.map(node.edges, edge => ({ ...edge, label:getEdgeLabel(edge), type: edge.label, dashes:isDashed(edge), arrows: { to: { enabled: true, scaleFactor: 0.5 } }})));
 
   });
 
@@ -57,6 +57,10 @@ export const extractEdgesAndNodes = (nodeList, nodeLabels=[]) => {
 
 export const getEdgeLabel = (edge) => {
   return edge.properties.field?  edge.label+" : "+ edge.properties.field: edge.label;
+};
+
+export const isDashed = (edge) => {
+  return edge.properties.field===undefined?false:!edge.properties.ownership;
 };
 
 export const findNodeById = (nodeList, id) => {

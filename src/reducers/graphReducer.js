@@ -57,7 +57,15 @@ export const reducer =  (state=initialState, action)=>{
       _.map(state.nodes, node => {
         if (node.type in nodeLabelMap) {
           const field = nodeLabelMap[node.type];
-          const label = node.properties[field];
+          let label="";
+          if(!field.includes(',')){
+            label = field in node.properties ? node.properties[field] : node.type;
+          }else {
+            _.forEach(field.split(','), (field) => {
+              label+="/"+node.properties[field];
+            })
+            label=label.substring(1);
+          }
           state.nodeHolder.update({id:node.id, label: label});
           return {...node, label };
         }
