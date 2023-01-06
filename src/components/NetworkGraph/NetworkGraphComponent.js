@@ -16,6 +16,20 @@ class NetworkGraph extends React.Component{
       this.props.dispatch({ type: ACTIONS.SET_SELECTED_NODE, payload: nodeId });
     });
 
+    network.on("dragEnd", function (params) {
+
+     if(network.options['physicsOnDrag']!=undefined){
+
+        const nodeId = params.nodes && params.nodes.length > 0 ? params.nodes[0] : null;
+        if(nodeId!=null){
+          const enable= network.options['physicsOnDrag'];
+          data.nodes.update({id:nodeId, physics: !enable});
+        }
+
+
+     }
+
+    });
     network.on("selectEdge", (params) => {
       const edgeId = params.edges && params.edges.length === 1 ? params.edges[0] : null;
       const isNodeSelected = params.nodes && params.nodes.length > 0;

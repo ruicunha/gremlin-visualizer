@@ -5,6 +5,7 @@ const initialState = {
   nodeLabels: [],
   queryHistory: [],
   isPhysicsEnabled: true,
+  isPhysicsOnDragEnabled: false,
   nodeLimit: 100,
   networkOptions: {
     physics: {
@@ -49,6 +50,10 @@ export const reducer =  (state=initialState, action)=>{
     case ACTIONS.SET_IS_PHYSICS_ENABLED: {
       const isPhysicsEnabled = _.get(action, 'payload', true);
       return { ...state, isPhysicsEnabled };
+    }
+    case ACTIONS.SET_IS_PHYSICS_ON_DRAG_ENABLED: {
+      const isPhysicsOnDragEnabled = _.get(action, 'payload', true);
+      return { ...state, isPhysicsOnDragEnabled };
     }
     case ACTIONS.ADD_QUERY_HISTORY: {
       return { ...state, queryHistory: [ ...state.queryHistory, action.payload] }

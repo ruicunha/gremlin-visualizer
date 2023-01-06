@@ -28,7 +28,8 @@ export const extractEdgesAndNodes = (nodeList, nodeLabels=[]) => {
 
     const type = node.label;
     if (!nodeLabelMap[type]) {
-      const field = node.properties.kind && node.properties.name? 'kind,name':selectRandomField(node.properties);
+    //  const field = node.properties.kind && node.properties.name? 'kind,name':selectRandomField(node.properties);
+      const field = 'name';
       const nodeLabel = { type, field };
       console.log(nodeLabel);
       nodeLabels.push(nodeLabel);
@@ -46,15 +47,38 @@ export const extractEdgesAndNodes = (nodeList, nodeLabels=[]) => {
       label=label.substring(1);
     }
 
-    nodes.push({ id: node.id, label: String(label), group: node.label, properties: node.properties, type });
+    nodes.push({ id: node.id, label: String(label),shape:getNodeShape(node), group: node.label, properties: node.properties, type });
 
-    edges = edges.concat(_.map(node.edges, edge => ({ ...edge, label:getEdgeLabel(edge), type: edge.label, dashes:isDashed(edge), arrows: { to: { enabled: true, scaleFactor: 0.5 } }})));
+    edges = edges.concat(_.map(node.edges, edge => ({ ...edge, label:getEdgeLabel(edge), type: edge.label, dashes:isDashed(edge), arrows: { to: { enabled: true, type:node.label==='NetworkFunction'?"circle":"arrow", scaleFactor: 0.5 } }})));
 
   });
 
   return { edges, nodes, nodeLabels }
 };
 
+export const getNodeShape = (node) => {
+  switch(node.label) { 
+    case 'Pod': { 
+     
+       return 'diamond'; 
+    } 
+    case 'K8SNode': case 'Cluster': { 
+    
+       return 'hexagon'; 
+    } 
+    case 'DataCenter': case  'NetworkSlice': { 
+    
+      return 'star'; 
+    } 
+    case 'Server': case  'VirtualMachine': { 
+    
+      return 'square'; 
+    } 
+    default: { 
+      return 'dot'; 
+    } 
+ } 
+};
 export const getEdgeLabel = (edge) => {
   return edge.properties.field?  edge.label+" : "+ edge.properties.field: edge.label;
 };

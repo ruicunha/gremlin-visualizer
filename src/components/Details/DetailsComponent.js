@@ -80,6 +80,12 @@ class Details extends React.Component {
       this.props.network.setOptions( { physics: enabled, edges } );
     }
   }
+  onTogglePhysicsOnDrag(enabled){
+    this.props.dispatch({ type: ACTIONS.SET_IS_PHYSICS_ON_DRAG_ENABLED, payload: enabled });
+    if (this.props.network) {
+      this.props.network.options['physicsOnDrag']=enabled;
+    }
+  }
 
   generateList(list) {
     let key = 0;
@@ -193,6 +199,22 @@ class Details extends React.Component {
                     <Divider />
                   </Grid>
                   <Grid item xs={12} sm={12} md={12}>
+                    <Tooltip title="Disable Node Physics on drag" aria-label="add">
+                    <FormControlLabel
+                      control={
+                        <Switch
+                          checked={this.props.isPhysicsOnDragEnabled}
+                          onChange={() => { this.onTogglePhysicsOnDrag(!this.props.isPhysicsOnDragEnabled); }}
+                          value="node physics"
+                          color="primary"
+                        />
+                      }
+                      label="On Drag Disable Node Physics"
+                    />
+                    </Tooltip>
+                    <Divider />
+                  </Grid>
+                  <Grid item xs={12} sm={12} md={12}>
                     <Tooltip title="Number of maximum nodes which should return from the query. Empty or 0 has no restrictions." aria-label="add">
                       <TextField label="Node Limit" type="Number" variant="outlined" value={this.props.nodeLimit} onChange={event => {
                         const limit = event.target.value;
@@ -282,6 +304,7 @@ export const DetailsComponent = connect((state)=>{
     queryHistory: state.options.queryHistory,
     nodeLabels: state.options.nodeLabels,
     nodeLimit: state.options.nodeLimit,
-    isPhysicsEnabled: state.options.isPhysicsEnabled
+    isPhysicsEnabled: state.options.isPhysicsEnabled,
+    isPhysicsOnDragEnabled: state.options.isPhysicsOnDragEnabled
   };
 })(Details);
