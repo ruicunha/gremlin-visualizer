@@ -2,6 +2,8 @@ import React from 'react';
 import {connect} from 'react-redux';
 import vis from 'vis-network';
 import { ACTIONS } from '../../constants';
+import Box from '@mui/material/Box';
+import Toolbar from '@mui/material/Toolbar';
 
 class NetworkGraph extends React.Component{
   componentDidMount() {
@@ -42,8 +44,18 @@ class NetworkGraph extends React.Component{
   }
 
   render(){
-    return (<div ref={'myRef'} className={'mynetwork'} />);
-  }
+
+
+      return (
+          <Box
+          component="main"
+          position="fixed"
+          sx={{ width:'100%'}}>
+            <Toolbar />
+            <div ref={'myRef'} className={'mynetwork'} />
+          </Box>
+      );
+    }
 }
 
 export const NetworkGraphComponent = connect((state)=>{

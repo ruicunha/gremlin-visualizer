@@ -8,6 +8,7 @@ import { reducer as gremlinReducer } from './reducers/gremlinReducer';
 import { reducer as graphReducer } from './reducers/graphReducer';
 import { reducer as optionReducer } from './reducers/optionReducer';
 import { App } from './App';
+import './index.css';
 
 const composeEnhancers = window.__REDUX_DEVTOOLS_EXTENSION_COMPOSE__ || compose;
 const rootReducer = combineReducers({ gremlin: gremlinReducer, graph: graphReducer, options: optionReducer });

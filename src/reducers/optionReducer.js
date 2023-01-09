@@ -6,6 +6,7 @@ const initialState = {
   queryHistory: [],
   isPhysicsEnabled: true,
   isPhysicsOnDragEnabled: false,
+  toggleDrawer: true,
   nodeLimit: 100,
   networkOptions: {
     physics: {
@@ -90,6 +91,9 @@ export const reducer =  (state=initialState, action)=>{
     case ACTIONS.SET_NODE_LIMIT: {
       const nodeLimit = action.payload;
       return { ...state, nodeLimit };
+    }
+    case ACTIONS.SET_TOGGLE_DRAWER: {
+      return { ...state, toggleDrawer:!state.toggleDrawer };
     }
     default:
       return state;

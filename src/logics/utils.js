@@ -97,3 +97,11 @@ export const stringifyObjectValues = (obj) => {
     }
   });
 };
+
+export const getTableData = (obj) => {
+  const data = [];
+  _.forOwn(obj, (value, key) => {
+    data.push({property: key, value: value});
+  });
+  return data;
+};

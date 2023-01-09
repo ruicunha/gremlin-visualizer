@@ -1,10 +1,10 @@
 import React from 'react';
 import { connect } from 'react-redux';
 import {
-  ExpansionPanel,
-  ExpansionPanelSummary,
+  Accordion,
+  AccordionSummary,
   Typography,
-  ExpansionPanelDetails,
+  AccordionDetails,
   List,
   ListItem,
   ListItemText,
@@ -13,27 +13,33 @@ import {
   IconButton,
   Grid,
   Table,
+  TableContainer,
   TableBody,
+  TableHead,
   TableRow,
   TableCell,
   FormControlLabel,
   Switch,
+  Paper,
   Divider,
   Tooltip
-} from '@material-ui/core';
-import ExpandMoreIcon from '@material-ui/icons/ExpandMore';
-import AddIcon from '@material-ui/icons/Add';
-import DeleteIcon from '@material-ui/icons/Delete';
-import RefreshIcon from '@material-ui/icons/Refresh';
-import ArrowBackIcon from '@material-ui/icons/ArrowBack';
-import ArrowForwardIcon from '@material-ui/icons/ArrowForward';
+} from '@mui/material';
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
+import AddIcon from '@mui/icons-material/Add';
+import DeleteIcon from '@mui/icons-material/Delete';
+import RefreshIcon from '@mui/icons-material/Refresh';
+import ArrowBackIcon from '@mui/icons-material/ArrowBack';
+import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
 import _ from 'lodash';
-import { JsonToTable } from 'react-json-to-table';
 import { ACTIONS, COMMON_GREMLIN_ERROR, QUERY_ENDPOINT } from '../../constants';
 import axios from "axios";
 import { onFetchQuery} from '../../logics/actionHelper';
-import { stringifyObjectValues} from '../../logics/utils';
+import { getTableData } from '../../logics/utils';
+import Drawer from '@mui/material/Drawer';
+import Toolbar from '@mui/material/Toolbar';
+import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 
+const drawerWidth = 500;
 class Details extends React.Component {
 
   onAddNodeLabel() {
@@ -87,6 +93,10 @@ class Details extends React.Component {
     }
   }
 
+  toggleDrawer() {
+    this.props.dispatch({ type: ACTIONS.SET_TOGGLE_DRAWER });
+  }
+
   generateList(list) {
     let key = 0;
     return list.map(value => {
@@ -110,13 +120,13 @@ class Details extends React.Component {
       nodeLabel.index = index;
       return React.cloneElement((
         <ListItem>
-          <TextField id="standard-basic" label="Node Type" InputLabelProps={{ shrink: true }} value={nodeLabel.type} onChange={event => {
+          <TextField id="standard-basic" label="Node Type" size='small' InputLabelProps={{ shrink: true }} value={nodeLabel.type} onChange={event => {
             const type = event.target.value;
             const field = nodeLabel.field;
             this.onEditNodeLabel(nodeLabel.index, { type, field })
           }}
           />
-          <TextField id="standard-basic" label="Label Field" InputLabelProps={{ shrink: true }} value={nodeLabel.field} onChange={event => {
+          <TextField id="standard-basic" label="Label Field" size='small' InputLabelProps={{ shrink: true }} value={nodeLabel.field} onChange={event => {
             const field = event.target.value;
             const type = nodeLabel.type;
             this.onEditNodeLabel(nodeLabel.index, { type, field })
@@ -141,46 +151,71 @@ class Details extends React.Component {
       hasSelected = true;
       selectedType =  _.get(this.props.selectedNode, 'type');
       selectedId = _.get(this.props.selectedNode, 'id');
-      selectedProperties = _.get(this.props.selectedNode, 'properties');
-      stringifyObjectValues(selectedProperties);
+      selectedProperties = getTableData(_.get(this.props.selectedNode, 'properties'));
+      //stringifyObjectValues(selectedProperties);
       selectedHeader = 'Node';
     } else if (!_.isEmpty(this.props.selectedEdge)) {
       hasSelected = true;
       selectedType =  _.get(this.props.selectedEdge, 'type');
       selectedId = _.get(this.props.selectedEdge, 'id');
-      selectedProperties = _.get(this.props.selectedEdge, 'properties');
+      selectedProperties = getTableData(_.get(this.props.selectedEdge, 'properties'));
       selectedHeader = 'Edge';
-      stringifyObjectValues(selectedProperties);
+      //stringifyObjectValues(selectedProperties);
     }
 
+    const tableData = hasSelected?(
+      <TableContainer component={Paper} sx={{ width:'490px' }}>
+        <Table  aria-label="simple table">
+          <TableHead>
+            <TableRow>
+              <TableCell>Property</TableCell>
+              <TableCell>Value</TableCell>
+            </TableRow>
+          </TableHead>
+          <TableBody>
+            {selectedProperties.map((row) => (
+              <TableRow
+                key={row.property}
+                sx={{ '&:last-child td, &:last-child th': { border: 0 } }}
+              >
+                <TableCell component="th" scope="row">
+                  {row.property}
+                </TableCell>
+                <TableCell>{row.value}</TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </TableContainer>
+    ):undefined;
 
-    return (
+    const content = (
       <div className={'details'}>
         <Grid container spacing={2}>
           <Grid item xs={12} sm={12} md={12}>
-            <ExpansionPanel>
-              <ExpansionPanelSummary
+            <Accordion>
+              <AccordionSummary
                 expandIcon={<ExpandMoreIcon />}
                 aria-controls="panel1a-content"
                 id="panel1a-header"
               >
                 <Typography>Query History</Typography>
-              </ExpansionPanelSummary>
-              <ExpansionPanelDetails>
+              </AccordionSummary>
+              <AccordionDetails>
                 <List dense={true}>
                   {this.generateList(this.props.queryHistory)}
                 </List>
-              </ExpansionPanelDetails>
-            </ExpansionPanel>
-            <ExpansionPanel>
-              <ExpansionPanelSummary
+              </AccordionDetails>
+            </Accordion>
+            <Accordion>
+              <AccordionSummary
                 expandIcon={<ExpandMoreIcon />}
                 aria-controls="panel1a-content"
                 id="panel1a-header"
               >
                 <Typography>Settings</Typography>
-              </ExpansionPanelSummary>
-              <ExpansionPanelDetails>
+              </AccordionSummary>
+              <AccordionDetails>
                 <Grid container spacing={2}>
                   <Grid item xs={12} sm={12} md={12}>
                     <Tooltip title="Automatically stabilize the graph" aria-label="add">
@@ -216,7 +251,7 @@ class Details extends React.Component {
                   </Grid>
                   <Grid item xs={12} sm={12} md={12}>
                     <Tooltip title="Number of maximum nodes which should return from the query. Empty or 0 has no restrictions." aria-label="add">
-                      <TextField label="Node Limit" type="Number" variant="outlined" value={this.props.nodeLimit} onChange={event => {
+                      <TextField label="Node Limit" type="Number" variant="outlined" size='small' value={this.props.nodeLimit} onChange={event => {
                         const limit = event.target.value;
                         this.onEditNodeLimit(limit)
                       }} />
@@ -235,42 +270,48 @@ class Details extends React.Component {
                     </List>
                   </Grid>
                   <Grid item xs={12} sm={12} md={12}>
-                    <Fab variant="extended" color="primary" size="small" onClick={this.onRefresh.bind(this)}>
-                      <RefreshIcon />
-                      Refresh
-                    </Fab>
-                    <Fab variant="extended" size="small" onClick={this.onAddNodeLabel.bind(this)}>
-                      <AddIcon />
-                      Add Node Label
-                    </Fab>
+                    <Grid item xs={12} sm={12} md={12}>
+                      <Grid container spacing={2}>
+                        <Grid item xs={6} sm={6} md={6} container justifyContent="center">
+                          <Fab variant="circular" color="primary" size="small" onClick={this.onRefresh.bind(this)}>
+                            <RefreshIcon/>
+                          </Fab>
+                        </Grid>
+                        <Grid item xs={6} sm={6} md={6} container justifyContent="center">
+                          <Fab variant="circular" size="small" onClick={this.onAddNodeLabel.bind(this)}>
+                            <AddIcon />
+                          </Fab>
+                        </Grid>
+                      </Grid>
+                    </Grid>
                   </Grid>
                 </Grid>
-              </ExpansionPanelDetails>
-            </ExpansionPanel>
+              </AccordionDetails>
+            </Accordion>
           </Grid>
           {hasSelected &&
-          <Grid item xs={12} sm={12} md={12}>
-            <h2>Information: {selectedHeader}</h2>
+          <Grid item xs={12} sm={12} md={12} container justifyContent="center">
+            <h3>Information: {selectedHeader}</h3>
+            <Grid item xs={12} sm={12} md={12} sx={{height:'60px'}}>
             {selectedHeader === 'Node' &&
-            <Grid item xs={12} sm={12} md={12}>
               <Grid container spacing={2}>
-                <Grid item xs={6} sm={6} md={6}>
-                  <Fab variant="extended" size="small" onClick={() => this.onTraverse(selectedId, 'out')}>
-                    Traverse Out Edges
+                <Grid item xs={6} sm={6} md={6} container justifyContent="center">
+                  <Fab variant="extended" size="small" onClick={() => this.onTraverse(selectedId, 'out')} sx={{alignContent: 'center', alignItems: 'center' }}>
+                    Out
                     <ArrowForwardIcon/>
                   </Fab>
                 </Grid>
-                <Grid item xs={6} sm={6} md={6}>
+                <Grid item xs={6} sm={6} md={6} container justifyContent="center" sx={{alignContent: 'center', alignItems: 'center' }}>
                   <Fab variant="extended" size="small" onClick={() => this.onTraverse(selectedId, 'in')}>
-                    Traverse In Edges
+                    In
                     <ArrowBackIcon/>
                   </Fab>
                 </Grid>
               </Grid>
-            </Grid>
             }
+            </Grid>
             <Grid item xs={12} sm={12} md={12}>
-              <Grid container>
+              <Grid container justifyContent="center">
                 <Table aria-label="simple table">
                   <TableBody>
                     <TableRow key={'type'}>
@@ -283,13 +324,37 @@ class Details extends React.Component {
                     </TableRow>
                   </TableBody>
                 </Table>
-                <JsonToTable json={selectedProperties}/>
+                {tableData}
               </Grid>
             </Grid>
           </Grid>
           }
         </Grid>
       </div>
+    );
+
+
+    return (
+            <Drawer
+            sx={{
+              width: drawerWidth,
+              flexShrink: 0,
+              '& .MuiDrawer-paper': {
+                width: drawerWidth,
+              },
+            }}
+            onClose={(event => this.toggleDrawer())}
+            variant="persistent"
+            anchor="right"
+            open={this.props.toggleDrawer}
+          >    
+          <Toolbar>
+          <IconButton onClick={(event => this.toggleDrawer())}>
+            <ChevronRightIcon />
+          </IconButton>
+            </Toolbar>
+          {content}
+          </Drawer>
     );
   }
 }
@@ -305,6 +370,7 @@ export const DetailsComponent = connect((state)=>{
     nodeLabels: state.options.nodeLabels,
     nodeLimit: state.options.nodeLimit,
     isPhysicsEnabled: state.options.isPhysicsEnabled,
-    isPhysicsOnDragEnabled: state.options.isPhysicsOnDragEnabled
+    isPhysicsOnDragEnabled: state.options.isPhysicsOnDragEnabled,
+    toggleDrawer: state.options.toggleDrawer
   };
 })(Details);
