@@ -26,6 +26,7 @@ import {
 } from '@mui/material';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import AddIcon from '@mui/icons-material/Add';
+import { styled } from '@mui/material/styles';
 import DeleteIcon from '@mui/icons-material/Delete';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
@@ -37,6 +38,7 @@ import { onFetchQuery} from '../../logics/actionHelper';
 import { getTableData } from '../../logics/utils';
 import Drawer from '@mui/material/Drawer';
 import Toolbar from '@mui/material/Toolbar';
+import { tableCellClasses } from '@mui/material/TableCell';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 
 const drawerWidth = 500;
@@ -163,26 +165,47 @@ class Details extends React.Component {
       //stringifyObjectValues(selectedProperties);
     }
 
+    const StyledTableCell = styled(TableCell)(({ theme }) => ({
+      [`&.${tableCellClasses.head}`]: {
+        backgroundColor: '#1976d2',
+        color: theme.palette.common.white,
+      },
+      [`&.${tableCellClasses.body}`]: {
+
+      },
+    }));
+    
+    const StyledTableRow = styled(TableRow)(({ theme }) => ({
+      '&:nth-of-type(odd)': {
+        backgroundColor: theme.palette.action.hover,
+      },
+      // hide last border
+      '&:last-child td, &:last-child th': {
+        border: 0,
+        size: 'small'
+      },
+    }));
+
     const tableData = hasSelected?(
       <TableContainer component={Paper} sx={{ width:'490px' }}>
-        <Table  aria-label="simple table">
+        <Table  aria-label="simple table" size='small'>
           <TableHead>
             <TableRow>
-              <TableCell>Property</TableCell>
-              <TableCell>Value</TableCell>
+              <StyledTableCell>Property</StyledTableCell>
+              <StyledTableCell>Value</StyledTableCell>
             </TableRow>
           </TableHead>
           <TableBody>
             {selectedProperties.map((row) => (
-              <TableRow
+              <StyledTableRow
                 key={row.property}
                 sx={{ '&:last-child td, &:last-child th': { border: 0 } }}
               >
-                <TableCell component="th" scope="row">
+                <StyledTableCell component="th" scope="row" >
                   {row.property}
-                </TableCell>
-                <TableCell>{row.value}</TableCell>
-              </TableRow>
+                </StyledTableCell>
+                <StyledTableCell >{row.value}</StyledTableCell>
+              </StyledTableRow>
             ))}
           </TableBody>
         </Table>
@@ -291,32 +314,27 @@ class Details extends React.Component {
           </Grid>
           {hasSelected &&
           <Grid item xs={12} sm={12} md={12} container justifyContent="center">
-            <h3>Information: {selectedHeader}</h3>
-            <Grid item xs={12} sm={12} md={12} sx={{height:'60px'}}>
-            {selectedHeader === 'Node' &&
-              <Grid container spacing={2}>
-                <Grid item xs={6} sm={6} md={6} container justifyContent="center">
-                  <Fab variant="extended" size="small" onClick={() => this.onTraverse(selectedId, 'out')} sx={{alignContent: 'center', alignItems: 'center' }}>
-                    Out
-                    <ArrowForwardIcon/>
-                  </Fab>
-                </Grid>
-                <Grid item xs={6} sm={6} md={6} container justifyContent="center" sx={{alignContent: 'center', alignItems: 'center' }}>
-                  <Fab variant="extended" size="small" onClick={() => this.onTraverse(selectedId, 'in')}>
-                    In
-                    <ArrowBackIcon/>
-                  </Fab>
-                </Grid>
-              </Grid>
-            }
-            </Grid>
             <Grid item xs={12} sm={12} md={12}>
               <Grid container justifyContent="center">
                 <Table aria-label="simple table">
                   <TableBody>
                     <TableRow key={'type'}>
-                      <TableCell scope="row">Type</TableCell>
+                      <TableCell scope="row"><h4>{selectedHeader}</h4></TableCell>
                       <TableCell align="left">{String(selectedType)}</TableCell>
+                      {selectedHeader === 'Node' &&
+                          <TableCell align="left">
+                            <Fab variant="circular" size="small" color="primary" onClick={() => this.onTraverse(selectedId, 'in')}>
+                              <Tooltip title="Transverse In">
+                                <ArrowBackIcon/>
+                              </Tooltip>
+                            </Fab>
+                            <Fab variant="circular" size="small" color="primary" onClick={() => this.onTraverse(selectedId, 'out')}>
+                              <Tooltip title="Transverse Out">
+                                <ArrowForwardIcon/>
+                              </Tooltip>
+                            </Fab>
+                          </TableCell>
+                        }
                     </TableRow>
                     <TableRow key={'id'}>
                       <TableCell scope="row">ID</TableCell>
