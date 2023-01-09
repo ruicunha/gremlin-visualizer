@@ -1,7 +1,7 @@
 import { ACTIONS } from '../constants';
 
 const initialState = {
-  host: 'ws://172.31.0.1',
+  host: 'localhost',
   port: '8901',
   query: 'g.V()',
   error: null
