@@ -17,7 +17,7 @@ try{
   clientConfig.connections= config.connections.map((connection)=>{return { ...connection };})
   clientConfig.queries= config.queries;
   clientConfig.connections.forEach((connection)=>{delete connection["cosmosKey"]});
-  console.log(config.connections);
+
 
 }catch(error){
 }
