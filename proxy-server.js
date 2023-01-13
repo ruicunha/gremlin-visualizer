@@ -10,8 +10,14 @@ const port = 3001;
 
 let config={connections:[],queries:[]}
 
+let clientConfig={connections:[],queries:[]}
+
 try{
   config=JSON.parse(readFileSync('./config.json', 'utf8'));
+  clientConfig.connections= config.connections.map((connection)=>{return { ...connection };})
+  clientConfig.queries= config.queries;
+  clientConfig.connections.forEach((connection)=>{delete connection["cosmosKey"]});
+  console.log(config.connections);
 
 }catch(error){
 }
@@ -162,7 +168,7 @@ async function handleCosmosRequest(connection, query, nodeLimit) {
   return convertNodes(result._items);
 }
 app.get('/config', (req, res, next) => {
-  res.send(config)
+  res.send(clientConfig)
 });
 
 app.post('/query', (req, res, next) => {
