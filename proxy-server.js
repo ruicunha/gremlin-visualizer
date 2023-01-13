@@ -1,10 +1,20 @@
 require('dotenv').config();
+const { readFileSync } = require('fs');
 const express = require('express');
 const bodyParser = require('body-parser');
 const gremlin = require('gremlin');
 const cors = require('cors');
 const app = express();
 const port = 3001;
+
+
+let config={connections:[],queries:[]}
+
+try{
+  config=JSON.parse(readFileSync('./config.json', 'utf8'));
+
+}catch(error){
+}
 
 
 const DATABASE = process.env.DATABASE;
@@ -112,17 +122,34 @@ function makeCosmosQuery(query, nodeLimit) {
   return `${query}${nodeLimitQuery}.dedup().as('node').project('id', 'label', 'properties', 'edges').by(__.id()).by(__.label()).by(__.valueMap()).by(__.outE().project('id', 'from', 'to', 'label', 'properties').by(__.id()).by(__.select('node').id() ).by(__.inV().id()).by(__.label()).by(__.valueMap()).fold())`;
 }
 
-async function handleRequest(gremlinHost, gremlinPort, query, nodeLimit) {
-  const client =  new gremlin.driver.Client(`${gremlinHost}:${gremlinPort}/gremlin`, { traversalSource: 'g', mimeType: 'application/json' });
+async function handleRequest(connection, query, nodeLimit) {
+  const client =  new gremlin.driver.Client(`${connection.host}:${connection.port}/gremlin`, { traversalSource: 'g', mimeType: 'application/json' });
 
   const result = await client.submit(makeQuery(query, nodeLimit), {});
   
   return nodesToJson(result._items);
 }
 
-async function handleCosmosRequest(gremlinHost, gremlinPort, query, nodeLimit) {
-  const authenticator = new gremlin.driver.auth.PlainTextSaslAuthenticator(`/dbs/${DATABASE}/colls/${COLLECTION}`, COSMOSDB_KEY);
-  const client =  new gremlin.driver.Client(`${gremlinHost}:${gremlinPort}/gremlin`, 
+function getConnection(req){
+
+  const connection= config?.connections.find((connection)=>{return connection.name==req.body.name;});
+
+  if(connection)
+    return connection;
+
+  return {
+    host:req.body.host,
+    port:req.body.port,
+    cosmosKey:COSMOSDB_KEY,
+    database:DATABASE,
+    collection:COLLECTION
+  }
+
+}
+
+async function handleCosmosRequest(connection, query, nodeLimit) {
+  const authenticator = new gremlin.driver.auth.PlainTextSaslAuthenticator(`/dbs/${connection.database}/colls/${connection.collection}`, connection.cosmosKey);
+  const client =  new gremlin.driver.Client(`${connection.host}:${connection.port}/gremlin`, 
     { 
       authenticator,
       traversalSource: 'g', 
@@ -134,22 +161,26 @@ async function handleCosmosRequest(gremlinHost, gremlinPort, query, nodeLimit) {
 
   return convertNodes(result._items);
 }
+app.get('/config', (req, res, next) => {
+  res.send(config)
+});
 
 app.post('/query', (req, res, next) => {
-  const gremlinHost = req.body.host;
-  const gremlinPort = req.body.port;
+
+  const connection=getConnection(req);
+
   const nodeLimit = req.body.nodeLimit;
   const query = req.body.query;
 
-  const cosmosDBMode = COSMOSDB_KEY!=undefined;
+  const cosmosDBMode = connection.cosmosKey!=undefined;
 
 
   if(cosmosDBMode)
-    handleCosmosRequest(gremlinHost, gremlinPort, query, nodeLimit)
+    handleCosmosRequest(connection, query, nodeLimit)
     .then((result) => res.send(result))
     .catch((err) => next(err));
   else 
-    handleRequest(gremlinHost, gremlinPort, query, nodeLimit)
+    handleRequest(connection, query, nodeLimit)
         .then((result) => res.send(result))
     .catch((err) => next(err));
 

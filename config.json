@@ -1,0 +1,12 @@
+{
+
+    "connections":[
+    ],
+              
+    "queries":[
+        "g.V()"
+
+    ]
+
+
+}

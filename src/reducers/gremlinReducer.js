@@ -1,7 +1,8 @@
 import { ACTIONS } from '../constants';
 
 const initialState = {
-  host: 'localhost',
+  name: '',
+  host: 'ws://localhost',
   port: '8901',
   query: 'g.V()',
   error: null
@@ -9,6 +10,9 @@ const initialState = {
 
 export const reducer =  (state=initialState, action)=>{
   switch (action.type){
+    case ACTIONS.SET_NAME: {
+      return { ...state, name: action.payload }
+    }
     case ACTIONS.SET_HOST: {
       return { ...state, host: action.payload }
     }

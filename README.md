@@ -25,6 +25,10 @@ http://localhost:3000
 
 Note - Frontend starts on port 3000 and simple Node.js server also starts on port 3001. If you need to change the ports, configure in `package.json`, `proxy-server.js`, `src/constants` 
 
+## Configure a set of connections using a config file
+Add multiple connections and custom queries to the config.json (restart required). See config-template-example.json for examples.. 
+
+
 #### Setting up with Docker
 
 You can build a Docker image of the gremlin visualizer with the included `Dockerfile`.

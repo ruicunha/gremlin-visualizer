@@ -68,7 +68,7 @@ class Details extends React.Component {
     const query = `g.V('${nodeId}').${direction}()`;
     axios.post(
       QUERY_ENDPOINT,
-      { host: this.props.host, port: this.props.port, query: query, nodeLimit: this.props.nodeLimit },
+      { name: this.props.name, host: this.props.host, port: this.props.port, query: query, nodeLimit: this.props.nodeLimit },
       { headers: { 'Content-Type': 'application/json' } }
     ).then((response) => {
       onFetchQuery(response, query, this.props.nodeLabels, this.props.dispatch);
@@ -379,6 +379,7 @@ class Details extends React.Component {
 
 export const DetailsComponent = connect((state)=>{
   return {
+    name: state.gremlin.name,
     host: state.gremlin.host,
     port: state.gremlin.port,
     network: state.graph.network,
