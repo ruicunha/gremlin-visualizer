@@ -101,7 +101,7 @@ export const stringifyObjectValues = (obj) => {
 export const getTableData = (obj) => {
   const data = [];
   _.forOwn(obj, (value, key) => {
-    data.push({property: key, value: value});
+    data.push({property: key, value: typeof value == "boolean"?value.toString():value });
   });
   return data;
 };
