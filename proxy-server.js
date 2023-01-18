@@ -34,6 +34,23 @@ app.use(cors({
 // parse application/json
 app.use(bodyParser.json());
 
+function getGremlinClient(connection) {
+  return new gremlin.driver.Client(`${connection.host}:${connection.port}/gremlin`, { traversalSource: 'g', mimeType: 'application/json' });
+}
+
+function getCosmosClient(connection) {
+
+  const authenticator = new gremlin.driver.auth.PlainTextSaslAuthenticator(`/dbs/${connection.database}/colls/${connection.collection}`, connection.cosmosKey);
+  const client = new gremlin.driver.Client(`${connection.host}:${connection.port}/gremlin`,
+    {
+      authenticator,
+      traversalSource: 'g',
+      mimeType: 'application/vnd.gremlin-v2.0+json'
+    }
+  );
+  return client;
+}
+
 function mapToObj(inputMap) {
   let obj = {};
 
@@ -128,13 +145,32 @@ function makeCosmosQuery(query, nodeLimit) {
   return `${query}${nodeLimitQuery}.dedup().as('node').project('id', 'label', 'properties', 'edges').by(__.id()).by(__.label()).by(__.valueMap()).by(__.outE().project('id', 'from', 'to', 'label', 'properties').by(__.id()).by(__.select('node').id() ).by(__.inV().id()).by(__.label()).by(__.valueMap()).fold())`;
 }
 
-async function handleRequest(connection, query, nodeLimit) {
-  const client =  new gremlin.driver.Client(`${connection.host}:${connection.port}/gremlin`, { traversalSource: 'g', mimeType: 'application/json' });
+async function handleCosmosRequest(connection, query, nodeLimit) {
 
-  const result = await client.submit(makeQuery(query, nodeLimit), {});
-  
+  const result = await  getCosmosClient(connection).submit(makeCosmosQuery(query, nodeLimit), {});
+  return convertNodes(result._items);
+
+}
+
+async function handleRequest(connection, query, nodeLimit) {
+
+  const result = await getGremlinClient(connection).submit(makeQuery(query, nodeLimit), {});
   return nodesToJson(result._items);
 }
+
+async function handleCosmosDeleteRequest(connection,query) {
+
+  const result = await  getCosmosClient(connection).submit(query, {});
+  return true;
+}
+
+async function handleDeleteRequest(connection, query, nodeLimit) {
+
+  const result = await getGremlinClient(connection).submit(query, {});
+  return true
+
+}
+
 
 function getConnection(req){
 
@@ -153,22 +189,80 @@ function getConnection(req){
 
 }
 
-async function handleCosmosRequest(connection, query, nodeLimit) {
-  const authenticator = new gremlin.driver.auth.PlainTextSaslAuthenticator(`/dbs/${connection.database}/colls/${connection.collection}`, connection.cosmosKey);
-  const client =  new gremlin.driver.Client(`${connection.host}:${connection.port}/gremlin`, 
-    { 
-      authenticator,
-      traversalSource: 'g', 
-      mimeType: 'application/vnd.gremlin-v2.0+json' 
+function getDeleteQuery(req){
+
+  const id = req.body.id;
+  const selectedType = req.body.selectedType;
+  const cascade = req.body.cascade;
+  const label = req.body.label;
+  const field = req.body.field;
+  let value = req.body.value;
+
+  let boleanValue=value=='true'|| value==true?true:value=='false'|| value==false?false:undefined
+  
+  value = value=='true'?true:value=='false'?false:value
+
+  if(selectedType=='Edge'){
+    return  `g.E('${id}').drop()`;
+  }
+  if(selectedType=='Node'){
+
+    let query=`g.V('${id}')`;
+
+    if(cascade){
+
+      query=query+".emit().repeat(";
+
+      if(!label && ! field){
+        query=query+'out()'
+      }else{
+        query=query+'outE()'
+      }
+
+      if(label){
+        query=query+`.hasLabel('${label}')`
+      }
+      if(field && value){
+        if(boleanValue!=undefined){
+          query=query+`.has('${field}',${boleanValue})`
+        }else{
+          query=query+`.has('${field}','${value}')`
+        }
+
+      }else if(field){
+        query=query+`.has('${field}')`
+      }
+
+      if( label ||  field){
+        query=query+'.inV()'
+      }
+
+      query=query+").fold().unfold()";
     }
-  );  
-
-  const result = await client.submit(makeCosmosQuery(query, nodeLimit), {});
-
-  return convertNodes(result._items);
+    return  query+`.drop()`;
+  }
 }
+
+
 app.get('/config', (req, res, next) => {
   res.send(clientConfig)
+});
+app.post('/delete', (req, res, next) => {
+
+  const connection=getConnection(req);
+  const query=getDeleteQuery(req);
+  
+  const cosmosDBMode = connection.cosmosKey!=undefined;
+
+  if(cosmosDBMode)
+    handleCosmosDeleteRequest(connection, query)
+      .then((result) => res.send(result))
+      .catch((err) => next(err));
+  else 
+    handleDeleteRequest(connection, query)
+        .then((result) => res.send(result))
+       .catch((err) => next(err));
+
 });
 
 app.post('/query', (req, res, next) => {
@@ -179,7 +273,6 @@ app.post('/query', (req, res, next) => {
   const query = req.body.query;
 
   const cosmosDBMode = connection.cosmosKey!=undefined;
-
 
   if(cosmosDBMode)
     handleCosmosRequest(connection, query, nodeLimit)
@@ -193,3 +286,6 @@ app.post('/query', (req, res, next) => {
 });
 
 app.listen(port, () => console.log(`Simple gremlin-proxy server listening on port ${port}!`));
+
+
+

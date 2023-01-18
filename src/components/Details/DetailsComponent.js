@@ -1,4 +1,5 @@
-import React from 'react';
+import React, {  createRef } from 'react';
+
 import { connect } from 'react-redux';
 import {
   Accordion,
@@ -31,8 +32,9 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
+import RemoveRoundedIcon from '@mui/icons-material/RemoveRounded';
 import _ from 'lodash';
-import { ACTIONS, COMMON_GREMLIN_ERROR, QUERY_ENDPOINT } from '../../constants';
+import { ACTIONS, COMMON_GREMLIN_ERROR, DELETE_GREMLIN_ERROR, QUERY_ENDPOINT , DELETE_ENDPOINT} from '../../constants';
 import axios from "axios";
 import { onFetchQuery} from '../../logics/actionHelper';
 import { getTableData } from '../../logics/utils';
@@ -40,9 +42,33 @@ import Drawer from '@mui/material/Drawer';
 import Toolbar from '@mui/material/Toolbar';
 import { tableCellClasses } from '@mui/material/TableCell';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
+import Dialog from "@mui/material/Dialog";
+import DialogContent from "@mui/material/DialogContent";
+import DialogTitle from "@mui/material/DialogTitle";
+import DialogActions from "@mui/material/DialogActions";
+import Button from '@mui/material/Button';
+import Checkbox from '@mui/material/Checkbox'
+import FormGroup from '@mui/material/FormGroup'
+import FormLabel from '@mui/material/FormLabel'
+
+
+
 
 const drawerWidth = 500;
+
+
+let deleteLabel=undefined;
+let deleteField=undefined;
+let deleteValue=undefined;
 class Details extends React.Component {
+
+  constructor(props) {
+    super(props);
+    this.deleteCascadeRef = createRef();
+    this.deleteLabelRef = createRef();
+    this.deleteFieldRef = createRef();
+    this.deleteValueRef = createRef();
+  }
 
   onAddNodeLabel() {
     this.props.dispatch({ type: ACTIONS.ADD_NODE_LABEL });
@@ -142,13 +168,81 @@ class Details extends React.Component {
       })
     });
   }
+  openDeleteDialog(id){
+
+    this.props.dispatch({ type: ACTIONS.SET_ERROR, payload: null });
+    this.props.dispatch({ type: ACTIONS.OPEN_DELETE, payload: true  });
+
+  }
+  closeDeleteDialog(){
+  
+    this.updateDeleteOptions();
+    this.props.dispatch({ type: ACTIONS.OPEN_DELETE, payload: false  });
+
+  }
+  deleteSelected(id,selectedType){
+
+     this.updateDeleteOptions();
+
+     axios.post(
+      DELETE_ENDPOINT,
+       { name: this.props.name, 
+         host: this.props.host, 
+         port: this.props.port, 
+         id: id, 
+         selectedType: selectedType, 
+         cascade:  this.props.cascadeDelete, 
+         label: deleteLabel, 
+         field: deleteField, 
+         value: deleteValue
+        },
+       { headers: { 'Content-Type': 'application/json' } }
+     ).then((response) => {
+
+       if(selectedType==='Edge'){
+        this.props.dispatch({ type: ACTIONS.DELETE_EDGE, payload: { id: id } });
+       }else{
+        this.props.dispatch({ type: ACTIONS.DELETE_NODE, payload: {          
+          id: id, 
+          selectedType: selectedType, 
+          cascade: this.props.cascadeDelete, 
+          label: deleteLabel, 
+          field: deleteField, 
+          value: deleteValue  } });
+       }
+
+     }).catch((error) => {
+
+        this.props.dispatch({ type: ACTIONS.SET_ERROR, payload: DELETE_GREMLIN_ERROR });
+      
+     });
+
+     this.closeDeleteDialog();
+  }
+
+  updateDeleteOptions() {
+
+
+    deleteLabel = this.deleteLabelRef.current?.value;
+    deleteField = this.deleteFieldRef.current?.value;
+    deleteValue = this.deleteValueRef.current?.value;
+  }
+
+  enableDeleteFilter(){
+  
+    this.props.dispatch({ type: ACTIONS.SET_CASCADE_DELETE, payload:  this.deleteCascadeRef.current?.checked  });
+  }
 
   render(){
+  
     let hasSelected = false;
     let selectedType = null;
     let selectedId = null ;
     let selectedProperties = null;
     let selectedHeader = null;
+
+
+
     if (!_.isEmpty(this.props.selectedNode)) {
       hasSelected = true;
       selectedType =  _.get(this.props.selectedNode, 'type');
@@ -313,8 +407,8 @@ class Details extends React.Component {
             </Accordion>
           </Grid>
           {hasSelected &&
-          <Grid item xs={12} sm={12} md={12} container justifyContent="center">
-            <Grid item xs={12} sm={12} md={12}>
+          <Grid item xs={10} sm={12} md={12} container justifyContent="center">
+            <Grid item xs={10} sm={12} md={12}>
               <Grid container justifyContent="center">
                 <Table aria-label="simple table">
                   <TableBody>
@@ -322,7 +416,7 @@ class Details extends React.Component {
                       <TableCell scope="row"><h4>{selectedHeader}</h4></TableCell>
                       <TableCell align="left">{String(selectedType)}</TableCell>
                       {selectedHeader === 'Node' &&
-                          <TableCell align="left">
+                          <TableCell align="right">
                             <Fab variant="circular" size="small" color="primary" onClick={() => this.onTraverse(selectedId, 'in')}>
                               <Tooltip title="Transverse In">
                                 <ArrowBackIcon/>
@@ -333,12 +427,49 @@ class Details extends React.Component {
                                 <ArrowForwardIcon/>
                               </Tooltip>
                             </Fab>
+                            <Fab variant="circular" size="small" color="primary"  style={{marginLeft: '15px'}} onClick={() => this.openDeleteDialog(selectedId,selectedHeader)}>
+                              <Tooltip title="Remove">
+                                <RemoveRoundedIcon/>
+                              </Tooltip>
+                            </Fab>                            
                           </TableCell>
                         }
+                        {selectedHeader === 'Edge' &&
+                          <TableCell align="right">
+                            <Fab variant="circular" size="small" color="primary" onClick={() => this.openDeleteDialog(selectedId,selectedHeader)}>
+                              <Tooltip title="Remove">
+                                <RemoveRoundedIcon/>
+                              </Tooltip>
+                            </Fab>                            
+                          </TableCell>
+                        }
+                       <Dialog open={this.props.openDelete} fullWidth={true} maxWidth={"sm"}>
+                           <DialogTitle>Delete {selectedHeader}</DialogTitle>
+                           <DialogContent dividers>Are you sure you want to delete?
+                           {selectedHeader === 'Node' &&
+                           <FormGroup style={{padding:'10px'}}>
+
+                                <FormControlLabel control={<Checkbox defaultChecked={this.props.cascadeDelete}  onChange={() => this.enableDeleteFilter() } />}    label="Cascade delete on out." inputRef={this.deleteCascadeRef} />
+                                <FormLabel id="demo-radio-buttons-group-label">On label:</FormLabel>
+                                <TextField style={{margin:'10px'}} disabled={!this.props.cascadeDelete} id="outlined-helperText" defaultValue={deleteLabel}  label="has label"  inputRef={this.deleteLabelRef}/>
+                                <FormLabel id="demo-radio-buttons-group-label">On property:</FormLabel>
+                                <TextField style={{margin:'10px'}} disabled={!this.props.cascadeDelete}  id="outlined-helperText"  defaultValue={deleteField}  label="contains field"  inputRef={this.deleteFieldRef}/>
+                                <TextField style={{margin:'10px'}} disabled={!this.props.cascadeDelete} id="outlined-helperText"  defaultValue={deleteValue}  label="with value"  inputRef={this.deleteValueRef}/>
+
+                           </FormGroup>
+                           }
+                           </DialogContent>
+                           <DialogActions>
+                              <Button autoFocus onClick={() => this.closeDeleteDialog()}>
+                              Cancel
+                              </Button>
+                              <Button onClick={() => this.deleteSelected(selectedId,selectedHeader)}>Ok</Button>
+                          </DialogActions>
+                      </Dialog>
                     </TableRow>
                     <TableRow key={'id'}>
                       <TableCell scope="row">ID</TableCell>
-                      <TableCell align="left">{String(selectedId)}</TableCell>
+                      <TableCell align="left" colSpan={2}>{String(selectedId)}</TableCell>
                     </TableRow>
                   </TableBody>
                 </Table>
@@ -390,6 +521,8 @@ export const DetailsComponent = connect((state)=>{
     nodeLimit: state.options.nodeLimit,
     isPhysicsEnabled: state.options.isPhysicsEnabled,
     isPhysicsOnDragEnabled: state.options.isPhysicsOnDragEnabled,
-    toggleDrawer: state.options.toggleDrawer
+    toggleDrawer: state.options.toggleDrawer,
+    openDelete: state.options.openDelete,
+    cascadeDelete: state.options.cascadeDelete
   };
 })(Details);

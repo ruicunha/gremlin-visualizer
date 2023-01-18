@@ -1,7 +1,7 @@
 import vis from 'vis-network';
 import _ from 'lodash';
 import { ACTIONS } from '../constants';
-import { getDiffNodes, getDiffEdges, findNodeById } from '../logics/utils';
+import { getDiffNodes, getDiffEdges, findNodeById, getNodesToRemove } from '../logics/utils';
 
 const initialState = {
   network: null,
@@ -35,6 +35,38 @@ export const reducer =  (state=initialState, action)=>{
       const edges = [...state.edges, ...newEdges];
       state.edgeHolder.add(newEdges);
       return { ...state, edges };
+    }
+    case ACTIONS.DELETE_EDGE: {
+      const newEdges = state.edges.filter((edge)=>{return edge.id!== action.payload.id})
+      const edges = [ ...newEdges];
+      state.edgeHolder.remove(action.payload.id);
+      return { ...state, edges };
+    }
+    case ACTIONS.DELETE_NODE: {
+
+      const {nodesToRemove, edgesToRemove}= getNodesToRemove(state.nodes,action.payload);
+   
+      const removedNodeIds= [];
+      const removedEdgeIds= [];
+
+      nodesToRemove.forEach((node)=>{
+        state.nodeHolder.remove(node.id);
+        removedNodeIds.push(node.id)
+      });
+      edgesToRemove.forEach((edge)=>{
+        state.edgeHolder.remove(edge.id);
+        removedEdgeIds.push(edge.id)
+      });
+      
+
+      const newNodes = state.nodes.filter((node)=>{return !removedNodeIds.indexOf(node.id)>=0})
+      const newEdges = state.edges.filter((edge)=>{return !removedEdgeIds.indexOf(edge.id)>=0})
+
+
+      const edges = [ ...newEdges];
+      const nodes = [ ...newNodes];
+
+      return { ...state, edges, nodes };
     }
     case ACTIONS.SET_SELECTED_NODE: {
       const nodeId = action.payload;

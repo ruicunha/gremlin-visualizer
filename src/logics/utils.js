@@ -6,6 +6,74 @@ const selectRandomField = (obj) => {
   return firstKey;
 };
 
+
+export const getNodesToRemove =(nodes,filter) =>{
+
+   const nodesToRemove=[];
+   let edgesToRemove=[];
+
+   const rootNode=nodes.find((node)=>{ return node.id === filter.id});
+
+   nodesToRemove.push(rootNode);
+
+   if(filter.cascade && rootNode.edges.length>0){
+     filterNodes(nodesToRemove, nodes, filter, rootNode.edges)
+   }
+
+   edgesToRemove=nodesToRemove.flatMap((node)=>node.edges)
+
+   return {nodesToRemove, edgesToRemove};
+
+}
+export const filterNodes =(nodesToRemove,nodes,filter,edges) =>{
+
+  edges.forEach((edge)=>{
+      
+    let node= getNode(nodesToRemove,nodes,edge.to);
+
+    if(node && filterAppliesToNode(filter,edge)){
+      nodesToRemove.push(node);
+      filterNodes(nodesToRemove,nodes,filter,node.edges)
+    }
+  }
+  );
+}
+
+export const filterAppliesToNode =(filter,edge) =>{
+
+  if(filter.label && !(edge.label===filter.label)){
+    return false;
+ 
+  }
+  if(filter.field || filter.value){
+    return edgeHasField(edge,filter.field, filter.value)
+  }
+  return true;
+
+}
+
+export const edgeHasField =(edge,field,value)=>{
+
+  if(!edge.properties.hasOwnProperty(field))
+    return false;
+  if(value)
+     return edge.properties[field]===toFieldValue(value);
+
+  return true;
+}
+export const toFieldValue =(value)=>{
+  return value==="true"?true: value==="false"?false:value;
+}
+
+
+export const getNode =(nodesToRemove,nodes,id) =>{
+
+  const removed=nodesToRemove.find((node)=>{return node.id === id});
+  if(!removed)
+    return nodes.find((node)=>{return node.id===id});
+
+}
+
 export const getDiffNodes = (newList, oldList) => {
   return _.differenceBy(newList, oldList, (node) => node.id);
 };
@@ -46,7 +114,7 @@ export const extractEdgesAndNodes = (nodeList, nodeLabels=[]) => {
       label=label.substring(1);
     }
 
-    nodes.push({ id: node.id, label: String(label),shape:getNodeShape(node), group: node.label, properties: node.properties, type });
+    nodes.push({ id: node.id, label: String(label),shape:getNodeShape(node), group: node.label, properties: node.properties, type, edges: node.edges });
 
     edges = edges.concat(_.map(node.edges, edge => ({ ...edge, label:getEdgeLabel(edge), type: edge.label, dashes:isDashed(edge), arrows: { to: { enabled: true, type:node.label==='NetworkFunction'?"circle":"arrow", scaleFactor: 0.5 } }})));
 
