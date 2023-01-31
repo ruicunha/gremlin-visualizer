@@ -31,6 +31,10 @@ class Header extends React.Component {
       globalQueries.push(...response.data.queries);
       queries.push(...globalQueries);
       configured=true;
+      if(hosts.length>0){
+        this.onOptionChanged(hosts[0]);
+      }
+  
 
     }).catch((error) => {
       console.log(error);
@@ -42,16 +46,41 @@ class Header extends React.Component {
     this.props.dispatch({ type: ACTIONS.CLEAR_QUERY_HISTORY });
   }
 
+  keyPress(e){
+    if(e.keyCode === 13){
+      this.sendQuery() 
+    }
+  }
+
   sendQuery() {
+
     this.props.dispatch({ type: ACTIONS.SET_ERROR, payload: null });
+    this.executeQuery(this.props.query);
+  }
+
+
+  executeQuery(query) {
+  
     axios.post(
       QUERY_ENDPOINT,
-      { name: this.props.name, host: this.props.host, port: this.props.port, query: this.props.query, nodeLimit: this.props.nodeLimit },
+      { name: this.props.name, host: this.props.host, port: this.props.port, query: query, nodeLimit: this.props.nodeLimit,consoleMode: this.props.isConsoleModeEnabled },
       { headers: { 'Content-Type': 'application/json' } }
     ).then((response) => {
-      onFetchQuery(response, this.props.query, this.props.nodeLabels, this.props.dispatch);
+      if(this.props.isConsoleModeEnabled){
+        if(response.data.error)
+         console.error(JSON.stringify(response.data.error, null, 4));
+        else
+         console.log(JSON.stringify(response.data.result, null, 4)  )
+         
+      }else{
+         onFetchQuery(response, this.props.query, this.props.nodeLabels, this.props.dispatch);
+       }
     }).catch((error) => {
+      if(this.props.isConsoleModeEnabled){
+        console.error(error);
+     }else{
       this.props.dispatch({ type: ACTIONS.SET_ERROR, payload: COMMON_GREMLIN_ERROR });
+     }
     });
   }
 
@@ -69,8 +98,9 @@ class Header extends React.Component {
     this.onHostChanged(option.host,option.name);
     this.onPortChanged(option.port);
 
+  
     this.render();
- 
+
   }
 
   onPortChanged(port) {
@@ -107,7 +137,7 @@ class Header extends React.Component {
             <TextField variant="filled" value={this.props.port} onChange={(event => this.onPortChanged(event.target.value))} id="port" label="port" size='small' color='primary' style={{width:'80px', marginRight: '10px', backgroundColor: 'white'}} />
 
            <Autocomplete  variant="contained"  id="combo-box-demo"  freeSolo onChange={((event, value) => this.onQueryChanged(value))}   options={queries}   style={{width:'700px',display: 'inline-flex'}} renderInput=  {(params) =>   
-           <TextField variant="filled" {...params}  value={this.props.query} onChange={(event => this.onQueryChanged(event.target.value))} id="query" label="gremlin query" size='small' color='primary'  style={{width:'680px', marginRight: '10px', backgroundColor: 'white'}} />
+           <TextField variant="filled" {...params}  value={this.props.query} onKeyDown={this.keyPress.bind(this)} onChange={(event => this.onQueryChanged(event.target.value))} id="query" label="gremlin query" size='small' color='primary'  style={{width:'680px', marginRight: '10px', backgroundColor: 'white'}} />
            } />
        
               <Button variant="contained" color="primary" onClick={this.sendQuery.bind(this)} style={{width: '150px', marginRight: '5px', marginBottom: '25px'}} >Execute</Button>
@@ -143,6 +173,7 @@ export const HeaderComponent = connect((state)=>{
     edges: state.graph.edges,
     nodeLabels: state.options.nodeLabels,
     nodeLimit: state.options.nodeLimit,
-    toggleDrawer: state.options.toggleDrawer
+    toggleDrawer: state.options.toggleDrawer,
+    isConsoleModeEnabled: state.options.isConsoleModeEnabled
   };
 })(Header);

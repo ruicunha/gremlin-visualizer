@@ -33,6 +33,9 @@ import RefreshIcon from '@mui/icons-material/Refresh';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
 import RemoveRoundedIcon from '@mui/icons-material/RemoveRounded';
+import ContentCopyRoundedIcon from '@mui/icons-material/ContentCopyRounded';
+import AutoFixHighRoundedIcon from '@mui/icons-material/AutoFixHighRounded';
+import PlayCircleOutlineRoundedIcon from '@mui/icons-material/PlayCircleOutlineRounded';
 import _ from 'lodash';
 import { ACTIONS, COMMON_GREMLIN_ERROR, DELETE_GREMLIN_ERROR, QUERY_ENDPOINT , DELETE_ENDPOINT} from '../../constants';
 import axios from "axios";
@@ -54,7 +57,7 @@ import FormLabel from '@mui/material/FormLabel'
 
 
 
-const drawerWidth = 500;
+const drawerWidth = 550;
 
 
 let deleteLabel=undefined;
@@ -91,7 +94,11 @@ class Details extends React.Component {
   }
 
   onTraverse(nodeId, direction) {
-    const query = `g.V('${nodeId}').${direction}()`;
+    this.executeQuery(`g.V('${nodeId}').${direction}()`);
+  }
+
+  executeQuery(query){
+
     axios.post(
       QUERY_ENDPOINT,
       { name: this.props.name, host: this.props.host, port: this.props.port, query: query, nodeLimit: this.props.nodeLimit },
@@ -102,6 +109,11 @@ class Details extends React.Component {
       this.props.dispatch({ type: ACTIONS.SET_ERROR, payload: COMMON_GREMLIN_ERROR });
     });
   }
+
+  onToggleConsoleMode(enabled){
+    this.props.dispatch({ type: ACTIONS.SET_CONSOLE_MODE, payload: enabled });
+  }
+
 
   onTogglePhysics(enabled){
     this.props.dispatch({ type: ACTIONS.SET_IS_PHYSICS_ENABLED, payload: enabled });
@@ -127,13 +139,23 @@ class Details extends React.Component {
 
   generateList(list) {
     let key = 0;
-    return list.map(value => {
+    return [...list].reverse().map(value => {
       key = key+1;
       return React.cloneElement((
-        <ListItem>
+        <ListItem style={{paddingLeft: '0px',paddingRight: '0px'}}>
           <ListItemText
             primary={value}
           />
+          <Fab variant="circular" size="small" align="right" color="primary" onClick={() =>  navigator.clipboard.writeText(value)}>
+              <Tooltip title="Copy query to clipboard">
+                <ContentCopyRoundedIcon/>
+              </Tooltip>
+            </Fab>        
+            <Fab variant="circular" size="small" style={{marginLeft: '15px'}}  align="right" color="primary" onClick={() =>  this.executeQuery(value)}>
+              <Tooltip title="Execute query">
+                <PlayCircleOutlineRoundedIcon/>
+              </Tooltip>
+            </Fab>      
         </ListItem>
       ), {
         key
@@ -228,6 +250,16 @@ class Details extends React.Component {
     deleteValue = this.deleteValueRef.current?.value;
   }
 
+  clearAndSelectWithInOutRelations(selectedId){
+    
+    this.props.dispatch({ type: ACTIONS.CLEAR_GRAPH });
+
+    this.executeQuery(`g.V('${selectedId}')`);
+    this.onTraverse(selectedId, "out");
+    this.onTraverse(selectedId, "in");
+
+
+  }
   enableDeleteFilter(){
   
     this.props.dispatch({ type: ACTIONS.SET_CASCADE_DELETE, payload:  this.deleteCascadeRef.current?.checked  });
@@ -281,7 +313,7 @@ class Details extends React.Component {
     }));
 
     const tableData = hasSelected?(
-      <TableContainer component={Paper} sx={{ width:'490px' }}>
+      <TableContainer component={Paper} sx={{ width:'540px' }}>
         <Table  aria-label="simple table" size='small'>
           <TableHead>
             <TableRow>
@@ -319,9 +351,11 @@ class Details extends React.Component {
                 <Typography>Query History</Typography>
               </AccordionSummary>
               <AccordionDetails>
+              <Paper style={{maxHeight: 220, overflow: 'auto', padding:0, boxShadow:'none' }}>
                 <List dense={true}>
                   {this.generateList(this.props.queryHistory)}
                 </List>
+                </Paper>
               </AccordionDetails>
             </Accordion>
             <Accordion>
@@ -334,6 +368,22 @@ class Details extends React.Component {
               </AccordionSummary>
               <AccordionDetails>
                 <Grid container spacing={2}>
+                 <Grid item xs={12} sm={12} md={12}>
+                    <Tooltip title="Use browser inspect console to see output" aria-label="add">
+                    <FormControlLabel
+                      control={
+                        <Switch
+                          checked={this.props.isConsoleModeEnabled}
+                          onChange={() => { this.onToggleConsoleMode(!this.props.isConsoleModeEnabled); }}
+                          value="node physics"
+                          color="primary"
+                        />
+                      }
+                      label="Change to console mode"
+                    />
+                    </Tooltip>
+                    <Divider />
+                  </Grid>
                   <Grid item xs={12} sm={12} md={12}>
                     <Tooltip title="Automatically stabilize the graph" aria-label="add">
                     <FormControlLabel
@@ -414,9 +464,9 @@ class Details extends React.Component {
                   <TableBody>
                     <TableRow key={'type'}>
                       <TableCell scope="row"><h4>{selectedHeader}</h4></TableCell>
-                      <TableCell align="left">{String(selectedType)}</TableCell>
+                      <TableCell align="left" >{String(selectedType)}</TableCell>
                       {selectedHeader === 'Node' &&
-                          <TableCell align="right">
+                          <TableCell align="right" colSpan={2}>
                             <Fab variant="circular" size="small" color="primary" onClick={() => this.onTraverse(selectedId, 'in')}>
                               <Tooltip title="Transverse In">
                                 <ArrowBackIcon/>
@@ -435,7 +485,7 @@ class Details extends React.Component {
                           </TableCell>
                         }
                         {selectedHeader === 'Edge' &&
-                          <TableCell align="right">
+                          <TableCell align="right" colSpan={2}>
                             <Fab variant="circular" size="small" color="primary" onClick={() => this.openDeleteDialog(selectedId,selectedHeader)}>
                               <Tooltip title="Remove">
                                 <RemoveRoundedIcon/>
@@ -470,6 +520,21 @@ class Details extends React.Component {
                     <TableRow key={'id'}>
                       <TableCell scope="row">ID</TableCell>
                       <TableCell align="left" colSpan={2}>{String(selectedId)}</TableCell>
+                      <TableCell scope="row" align="right" >
+
+                           <Fab variant="circular" size="small" color="primary" onClick={() =>  navigator.clipboard.writeText(selectedId)}>
+                              <Tooltip title="Copy ID to clipboard">
+                                <ContentCopyRoundedIcon/>
+                              </Tooltip>
+                            </Fab>      
+                            {selectedHeader === 'Node' &&
+                            <Fab variant="circular" size="small" color="primary" style={{marginLeft: '15px'}} onClick={() =>  this.clearAndSelectWithInOutRelations(selectedId)}>
+                              <Tooltip title="Clear and query with In Out relations">
+                                <AutoFixHighRoundedIcon/>
+                              </Tooltip>
+                            </Fab>      
+                           }
+                      </TableCell>
                     </TableRow>
                   </TableBody>
                 </Table>
@@ -521,6 +586,7 @@ export const DetailsComponent = connect((state)=>{
     nodeLimit: state.options.nodeLimit,
     isPhysicsEnabled: state.options.isPhysicsEnabled,
     isPhysicsOnDragEnabled: state.options.isPhysicsOnDragEnabled,
+    isConsoleModeEnabled: state.options.isConsoleModeEnabled,
     toggleDrawer: state.options.toggleDrawer,
     openDelete: state.options.openDelete,
     cascadeDelete: state.options.cascadeDelete

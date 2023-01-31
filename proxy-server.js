@@ -145,17 +145,49 @@ function makeCosmosQuery(query, nodeLimit) {
   return `${query}${nodeLimitQuery}.dedup().as('node').project('id', 'label', 'properties', 'edges').by(__.id()).by(__.label()).by(__.valueMap()).by(__.outE().project('id', 'from', 'to', 'label', 'properties').by(__.id()).by(__.select('node').id() ).by(__.inV().id()).by(__.label()).by(__.valueMap()).fold())`;
 }
 
-async function handleCosmosRequest(connection, query, nodeLimit) {
+async function handleCosmosRequest(connection, query, nodeLimit,consoleMode) {
+
+  if(consoleMode){
+    return origninalCosmosRequest(connection,query);
+  }
 
   const result = await  getCosmosClient(connection).submit(makeCosmosQuery(query, nodeLimit), {});
   return convertNodes(result._items);
 
 }
+async function origninalCosmosRequest(connection, query) {
+
+  try{
+  const result = await  getCosmosClient(connection).submit(query, {});
+   console.log(`${  JSON.stringify(result, null, 4)  }`);
+   return {error:undefined, result:result};
+  }catch(e){
+    console.log(e);
+    return {error:e, result:undefined};
+  }
+}
+
 
 async function handleRequest(connection, query, nodeLimit) {
 
+  if(consoleMode){
+    return origninalGremlinRequest(connection,query);
+  }
+
   const result = await getGremlinClient(connection).submit(makeQuery(query, nodeLimit), {});
   return nodesToJson(result._items);
+}
+
+async function origninalGremlinRequest(connection, query) {
+
+  try{
+   const result = await  getGremlinClient(connection).submit(query, {});
+   console.log(`${  JSON.stringify(result, null, 4)  }`);
+   return {error:undefined, result:result};
+  }catch(e){
+    console.log(e);
+    return {error:e, result:undefined};
+  }
 }
 
 async function handleCosmosDeleteRequest(connection,query) {
@@ -269,17 +301,18 @@ app.post('/query', (req, res, next) => {
 
   const connection=getConnection(req);
 
+  const consoleMode = req.body.consoleMode;
   const nodeLimit = req.body.nodeLimit;
   const query = req.body.query;
 
   const cosmosDBMode = connection.cosmosKey!=undefined;
 
   if(cosmosDBMode)
-    handleCosmosRequest(connection, query, nodeLimit)
+    handleCosmosRequest(connection, query, nodeLimit,consoleMode)
     .then((result) => res.send(result))
     .catch((err) => next(err));
   else 
-    handleRequest(connection, query, nodeLimit)
+    handleRequest(connection, query, nodeLimit,consoleMode)
         .then((result) => res.send(result))
     .catch((err) => next(err));
 

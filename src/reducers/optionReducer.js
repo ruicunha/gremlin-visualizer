@@ -4,18 +4,42 @@ import { ACTIONS } from '../constants';
 const initialState = {
   nodeLabels: [],
   queryHistory: [],
+  isConsoleModeEnabled: false,
   isPhysicsEnabled: true,
   isPhysicsOnDragEnabled: false,
   toggleDrawer: true,
   nodeLimit: 100,
   networkOptions: {
     physics: {
+      barnesHut: {
+        gravitationalConstant: -2000,
+        centralGravity: 0.3,
+        springLength: 95,
+        springConstant: 0.04,
+        damping: 0.09,
+        avoidOverlap: 0
+      },
       forceAtlas2Based: {
         gravitationalConstant: -26,
         centralGravity: 0.005,
         springLength: 230,
         springConstant: 0.18,
         avoidOverlap: 1.5
+      },
+      repulsion: {
+        centralGravity: 0.2,
+        springLength: 200,
+        springConstant: 0.05,
+        nodeDistance: 100,
+        damping: 0.09
+      },
+      hierarchicalRepulsion: {
+        centralGravity: 0.0,
+        springLength: 100,
+        springConstant: 0.01,
+        nodeDistance: 120,
+        damping: 0.09,
+        avoidOverlap: 0
       },
       maxVelocity: 40,
       solver: 'forceAtlas2Based',
@@ -48,6 +72,19 @@ const initialState = {
 
 export const reducer =  (state=initialState, action)=>{
   switch (action.type){
+
+    case ACTIONS.SET_CONSOLE_MODE: {
+      const isConsoleModeEnabled = _.get(action, 'payload', true);
+
+      if(isConsoleModeEnabled){
+        console.warn("----------------------------------------------------------------------------------")
+        console.warn("   Console mode is enabled:\n")
+        console.warn("        No limit, mapping, or visualizer projection is applied.")
+        console.warn("        You will see the result of the gremlin client submit.")
+        console.warn("----------------------------------------------------------------------------------")
+      }
+      return { ...state, isConsoleModeEnabled };
+    }
     case ACTIONS.SET_IS_PHYSICS_ENABLED: {
       const isPhysicsEnabled = _.get(action, 'payload', true);
       return { ...state, isPhysicsEnabled };
@@ -57,6 +94,9 @@ export const reducer =  (state=initialState, action)=>{
       return { ...state, isPhysicsOnDragEnabled };
     }
     case ACTIONS.ADD_QUERY_HISTORY: {
+      if(state.queryHistory.indexOf(action.payload)>=0){
+        return state;
+      }
       return { ...state, queryHistory: [ ...state.queryHistory, action.payload] }
     }
     case ACTIONS.CLEAR_QUERY_HISTORY: {
