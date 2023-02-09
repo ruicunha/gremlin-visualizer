@@ -159,7 +159,6 @@ async function origninalCosmosRequest(connection, query) {
 
   try{
   const result = await  getCosmosClient(connection).submit(query, {});
-   console.log(`${  JSON.stringify(result, null, 4)  }`);
    return {error:undefined, result:result};
   }catch(e){
     console.log(e);
@@ -182,7 +181,6 @@ async function origninalGremlinRequest(connection, query) {
 
   try{
    const result = await  getGremlinClient(connection).submit(query, {});
-   console.log(`${  JSON.stringify(result, null, 4)  }`);
    return {error:undefined, result:result};
   }catch(e){
     console.log(e);
