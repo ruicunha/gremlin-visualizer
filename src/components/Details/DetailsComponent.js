@@ -55,8 +55,6 @@ import FormGroup from '@mui/material/FormGroup'
 import FormLabel from '@mui/material/FormLabel'
 
 
-
-
 const drawerWidth = 550;
 
 let selectedId = null ;
@@ -102,10 +100,35 @@ class Details extends React.Component {
         this.onTraverse(selectedId, 'out')
         this.onTraverse(selectedId, 'in')
       }
+
       
     });
 
     
+
+
+    window.document.body.addEventListener("mousedown", e => {
+ 
+      if (e.button === 2 && 
+        e.target.parentElement?.className  ==="vis-network" && 
+        !this.props.toggleDrawer  && 
+        (this.props.network.getSelectedNodes().length>0 || this.props.network.getSelectedEdges().length>0)
+        ) { 
+        e.preventDefault();
+        e.stopPropagation();
+        this.openPropertiesDialog();
+       
+      }
+    });
+
+    window.document.body.addEventListener("contextmenu", e => {
+      if(this.props.openProperties){
+         e.preventDefault();
+         return false;
+      }
+      
+    });
+
   }
 
   onAddNodeLabel() {
@@ -229,6 +252,21 @@ class Details extends React.Component {
 
     this.props.dispatch({ type: ACTIONS.SET_ERROR, payload: null });
     this.props.dispatch({ type: ACTIONS.OPEN_DELETE, payload: true  });
+
+  }
+
+  openPropertiesDialog(){
+
+    this.props.dispatch({ type: ACTIONS.SET_ERROR, payload: null });
+    this.props.dispatch({ type: ACTIONS.OPEN_PROPERTIES, payload: true  });
+
+  }
+
+  
+  closePropertiesDialog(){
+
+    this.props.dispatch({ type: ACTIONS.SET_ERROR, payload: null });
+    this.props.dispatch({ type: ACTIONS.OPEN_PROPERTIES, payload: false  });
 
   }
   closeDeleteDialog(){
@@ -551,6 +589,11 @@ class Details extends React.Component {
                               <Button onClick={() => this.deleteSelected(selectedId,selectedHeader)}>Ok</Button>
                           </DialogActions>
                       </Dialog>
+                      <Dialog id="propertiesDialog" open={this.props.openProperties} fullWidth={true} maxWidth={"sm"} onClose={() =>  this.closePropertiesDialog()}>
+                      <DialogContent style={{marginLeft: '6px'}}>
+                       {tableData}
+                      </DialogContent>
+                      </Dialog>
                     </TableRow>
                     <TableRow key={'id'}>
                       <TableCell scope="row">ID</TableCell>
@@ -624,6 +667,7 @@ export const DetailsComponent = connect((state)=>{
     isConsoleModeEnabled: state.options.isConsoleModeEnabled,
     toggleDrawer: state.options.toggleDrawer,
     openDelete: state.options.openDelete,
+    openProperties: state.options.openProperties,
     cascadeDelete: state.options.cascadeDelete
   };
 })(Details);

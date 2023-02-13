@@ -9,6 +9,7 @@ const initialState = {
   isPhysicsOnDragEnabled: false,
   toggleDrawer: true,
   openDelete: false,
+  openProperties: false,
   nodeLimit: 100,
   networkOptions: {
     physics: {
@@ -138,6 +139,9 @@ export const reducer =  (state=initialState, action)=>{
     }
     case ACTIONS.OPEN_DELETE: {
       return { ...state, openDelete: action.payload};
+    }
+    case ACTIONS.OPEN_PROPERTIES: {
+      return { ...state, openProperties: action.payload};
     }
     case ACTIONS.SET_CASCADE_DELETE: {
       return { ...state, cascadeDelete: action.payload};
