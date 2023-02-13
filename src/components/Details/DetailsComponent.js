@@ -59,6 +59,7 @@ import FormLabel from '@mui/material/FormLabel'
 
 const drawerWidth = 550;
 
+let selectedId = null ;
 
 let deleteLabel=undefined;
 let deleteField=undefined;
@@ -71,6 +72,40 @@ class Details extends React.Component {
     this.deleteLabelRef = createRef();
     this.deleteFieldRef = createRef();
     this.deleteValueRef = createRef();
+   
+    window.document.addEventListener('keydown', (e) => {
+
+      if (e.key === 'Delete' && e.target.className  ==="vis-network") {
+   
+        this.openDeleteDialog();
+      }
+
+      if (e.ctrlKey && e.key === 'c' && e.target.className  ==="vis-network") {
+   
+        navigator.clipboard.writeText(selectedId)
+      }
+      
+      if (e.key === 'Enter' && e.target.className  ==="vis-network") {
+   
+        this.clearAndSelectWithInOutRelations(selectedId);
+      }
+      if (e.key === 'ArrowRight' && e.target.className  ==="vis-network") {
+   
+        this.onTraverse(selectedId, 'out')
+      }
+      if (e.key === 'ArrowLeft' && e.target.className  ==="vis-network") {
+   
+        this.onTraverse(selectedId, 'in')
+      }
+      if (e.key === '+' && e.target.className  ==="vis-network") {
+   
+        this.onTraverse(selectedId, 'out')
+        this.onTraverse(selectedId, 'in')
+      }
+      
+    });
+
+    
   }
 
   onAddNodeLabel() {
@@ -190,7 +225,7 @@ class Details extends React.Component {
       })
     });
   }
-  openDeleteDialog(id){
+  openDeleteDialog(){
 
     this.props.dispatch({ type: ACTIONS.SET_ERROR, payload: null });
     this.props.dispatch({ type: ACTIONS.OPEN_DELETE, payload: true  });
@@ -269,7 +304,7 @@ class Details extends React.Component {
   
     let hasSelected = false;
     let selectedType = null;
-    let selectedId = null ;
+  
     let selectedProperties = null;
     let selectedHeader = null;
 
@@ -477,7 +512,7 @@ class Details extends React.Component {
                                 <ArrowForwardIcon/>
                               </Tooltip>
                             </Fab>
-                            <Fab variant="circular" size="small" color="primary"  style={{marginLeft: '15px'}} onClick={() => this.openDeleteDialog(selectedId,selectedHeader)}>
+                            <Fab variant="circular" size="small" color="primary"  style={{marginLeft: '15px'}} onClick={() => this.openDeleteDialog()}>
                               <Tooltip title="Remove">
                                 <RemoveRoundedIcon/>
                               </Tooltip>
@@ -486,7 +521,7 @@ class Details extends React.Component {
                         }
                         {selectedHeader === 'Edge' &&
                           <TableCell align="right" colSpan={2}>
-                            <Fab variant="circular" size="small" color="primary" onClick={() => this.openDeleteDialog(selectedId,selectedHeader)}>
+                            <Fab variant="circular" size="small" color="primary" onClick={() => this.openDeleteDialog()}>
                               <Tooltip title="Remove">
                                 <RemoveRoundedIcon/>
                               </Tooltip>

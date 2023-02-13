@@ -8,6 +8,7 @@ const initialState = {
   isPhysicsEnabled: true,
   isPhysicsOnDragEnabled: false,
   toggleDrawer: true,
+  openDelete: false,
   nodeLimit: 100,
   networkOptions: {
     physics: {
