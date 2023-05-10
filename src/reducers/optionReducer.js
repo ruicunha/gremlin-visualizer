@@ -87,6 +87,11 @@ export const reducer =  (state=initialState, action)=>{
       }
       return { ...state, isConsoleModeEnabled };
     }
+    case ACTIONS.SET_MULTILINE_CONSOLE_MODE: {
+      const multilineInConsoleMode = _.get(action, 'payload', true);
+
+      return { ...state, multilineInConsoleMode };
+    }
     case ACTIONS.SET_IS_PHYSICS_ENABLED: {
       const isPhysicsEnabled = _.get(action, 'payload', true);
       return { ...state, isPhysicsEnabled };

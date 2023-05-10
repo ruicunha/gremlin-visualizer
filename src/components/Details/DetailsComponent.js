@@ -172,6 +172,10 @@ class Details extends React.Component {
     this.props.dispatch({ type: ACTIONS.SET_CONSOLE_MODE, payload: enabled });
   }
 
+  onToggleMultilineConsoleMode(enabled){
+    this.props.dispatch({ type: ACTIONS.SET_MULTILINE_CONSOLE_MODE, payload: enabled });
+  }
+
 
   onTogglePhysics(enabled){
     this.props.dispatch({ type: ACTIONS.SET_IS_PHYSICS_ENABLED, payload: enabled });
@@ -458,6 +462,22 @@ class Details extends React.Component {
                     <Divider />
                   </Grid>
                   <Grid item xs={12} sm={12} md={12}>
+                    <Tooltip title="Multiple queries at once (execute button is required)" aria-label="add">
+                    <FormControlLabel
+                      control={
+                        <Switch
+                          checked={this.props.multilineInConsoleMode}
+                          onChange={() => { this.onToggleMultilineConsoleMode(!this.props.multilineInConsoleMode); }}
+                          value="query multiline"
+                          color="primary"
+                        />
+                      }
+                      label="Allow multiline on console mode"
+                    />
+                    </Tooltip>
+                    <Divider />
+                  </Grid>
+                  <Grid item xs={12} sm={12} md={12}>
                     <Tooltip title="Automatically stabilize the graph" aria-label="add">
                     <FormControlLabel
                       control={
@@ -665,6 +685,7 @@ export const DetailsComponent = connect((state)=>{
     isPhysicsEnabled: state.options.isPhysicsEnabled,
     isPhysicsOnDragEnabled: state.options.isPhysicsOnDragEnabled,
     isConsoleModeEnabled: state.options.isConsoleModeEnabled,
+    multilineInConsoleMode: state.options.multilineInConsoleMode,
     toggleDrawer: state.options.toggleDrawer,
     openDelete: state.options.openDelete,
     openProperties: state.options.openProperties,

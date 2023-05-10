@@ -1,4 +1,5 @@
 require('dotenv').config();
+const os = require('os');
 const { readFileSync } = require('fs');
 const express = require('express');
 const bodyParser = require('body-parser');
@@ -148,6 +149,26 @@ function makeCosmosQuery(query, nodeLimit) {
 async function handleCosmosRequest(connection, query, nodeLimit,consoleMode) {
 
   if(consoleMode){
+
+    const queries= query.split(os.EOL);
+    
+    if(queries.length>1){
+      
+      const results=[];
+      for (let index = 0; index < queries.length; index++) {
+        if(queries[index].trim().length==0)
+          continue;
+        console.log("query=",queries[index]," end;\n");
+        let result = await origninalCosmosRequest(connection,queries[index])
+        results.push(result); 
+        if(result.error){
+          return result.error;
+        }
+      }
+      return results;
+    }
+
+
     return origninalCosmosRequest(connection,query);
   }
 

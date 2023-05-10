@@ -48,6 +48,9 @@ class Header extends React.Component {
 
   keyPress(e){
     if(e.keyCode === 13){
+      if(this.props.isConsoleModeEnabled && this.props.multilineInConsoleMode){
+        return;
+      }
       this.sendQuery() 
     }
   }
@@ -58,6 +61,18 @@ class Header extends React.Component {
     this.executeQuery(this.props.query);
   }
 
+  outputConsoleResponse(data){
+
+    if(data.result){
+      console.log(JSON.stringify(data.result, null, 4))
+    }else{
+      for (const dataItem of data) {
+        console.log(JSON.stringify(dataItem.result, null, 4))
+      }
+    }
+
+
+  }
 
   executeQuery(query) {
   
@@ -68,10 +83,9 @@ class Header extends React.Component {
     ).then((response) => {
       if(this.props.isConsoleModeEnabled){
         if(response.data.error)
-         console.error(JSON.stringify(response.data.error, null, 4));
-        else
-         console.log(JSON.stringify(response.data.result, null, 4)  )
-         
+           console.error(JSON.stringify(response.data.error, null, 4));
+         else
+           this.outputConsoleResponse(response.data)    
       }else{
          onFetchQuery(response, this.props.query, this.props.nodeLabels, this.props.dispatch);
        }
@@ -137,7 +151,7 @@ class Header extends React.Component {
             <TextField variant="filled" value={this.props.port} onChange={(event => this.onPortChanged(event.target.value))} id="port" label="port" size='small' color='primary' style={{width:'80px', marginRight: '10px', backgroundColor: 'white'}} />
 
            <Autocomplete  variant="contained"  id="combo-box-demo"  freeSolo onChange={((event, value) => this.onQueryChanged(value))}   options={queries}   style={{width:'700px',display: 'inline-flex'}} renderInput=  {(params) =>   
-           <TextField variant="filled" {...params}  value={this.props.query} onKeyDown={this.keyPress.bind(this)} onChange={(event => this.onQueryChanged(event.target.value))} id="query" label="gremlin query" size='small' color='primary'  style={{width:'680px', marginRight: '10px', backgroundColor: 'white'}} />
+           <TextField multiline={this.props.multilineInConsoleMode}  variant="filled" {...params}  value={this.props.query} onKeyDown={this.keyPress.bind(this)} onChange={(event => this.onQueryChanged(event.target.value))} id="query" label="gremlin query" size='small' color='primary'  style={{width:'680px', marginRight: '10px', backgroundColor: 'white'}} />
            } />
        
               <Button variant="contained" color="primary" onClick={this.sendQuery.bind(this)} style={{width: '150px', marginRight: '5px', marginBottom: '25px'}} >Execute</Button>
@@ -174,6 +188,7 @@ export const HeaderComponent = connect((state)=>{
     nodeLabels: state.options.nodeLabels,
     nodeLimit: state.options.nodeLimit,
     toggleDrawer: state.options.toggleDrawer,
-    isConsoleModeEnabled: state.options.isConsoleModeEnabled
+    isConsoleModeEnabled: state.options.isConsoleModeEnabled,
+    multilineInConsoleMode: state.options.multilineInConsoleMode
   };
 })(Header);
