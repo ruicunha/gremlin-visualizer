@@ -19,6 +19,8 @@ export const reducer =  (state=initialState, action)=>{
       state.nodeHolder.clear();
       state.edgeHolder.clear();
 
+      state.network.fit();
+
       return { ...state, nodes: [], edges: [], selectedNode:{}, selectedEdge: {} };
     }
     case ACTIONS.SET_NETWORK: {
