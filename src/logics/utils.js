@@ -173,3 +173,24 @@ export const getTableData = (obj) => {
   });
   return data;
 };
+
+export const mergeNodeProperties= (node, updatedNode,deletedEdges) => {
+
+  for (const [k, v] of Object.entries(updatedNode.properties)) {
+    node.properties[k]=v;
+  }
+  node.edges.forEach(edge => {
+    if(!updatedNode.edges.find((updateEdge)=>edge.id===updateEdge.id)){
+      deletedEdges.push(edge.id)
+    }
+  });
+  node.edges=updatedNode.edges;
+}
+
+export const mergeNodes= (nodes, updatedNodes, deletedEdges) => {
+
+  updatedNodes.forEach(updatedNode => {
+    mergeNodeProperties(nodes.find((node)=>node.id===updatedNode.id),updatedNode ,deletedEdges);
+  });
+
+}

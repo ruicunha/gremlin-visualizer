@@ -1,7 +1,7 @@
 import vis from 'vis-network';
 import _ from 'lodash';
 import { ACTIONS } from '../constants';
-import { getDiffNodes, getDiffEdges, findNodeById, getNodesToRemove } from '../logics/utils';
+import { getDiffNodes, getDiffEdges, findNodeById, getNodesToRemove, mergeNodeProperties,mergeNodes } from '../logics/utils';
 
 const initialState = {
   network: null,
@@ -29,8 +29,33 @@ export const reducer =  (state=initialState, action)=>{
     case ACTIONS.ADD_NODES: {
       const newNodes = getDiffNodes(action.payload, state.nodes);
       const nodes = [...state.nodes, ...newNodes];
+      const removedEdgeIds =[];
+
+      const mergeExistingNodes= state.network.options['mergeExistingNodes']!==undefined && state.network.options['mergeExistingNodes'];
+    
+      if(mergeExistingNodes){
+          mergeNodes(nodes,action.payload, removedEdgeIds);
+      }
+
       state.nodeHolder.add(newNodes);
-      return { ...state, nodes };
+
+      if(mergeExistingNodes){
+          nodes.forEach((node)=>{
+            mergeNodeProperties(state.nodeHolder.get(node.id),node,[])
+          });
+      
+          const newEdges = state.edges.filter((edge)=>{return !removedEdgeIds.indexOf(edge.id)>=0})
+          const edges = [ ...newEdges];
+
+          removedEdgeIds.forEach((edgeId)=>{
+            state.edgeHolder.remove(edgeId);
+          });
+          return { ...state, nodes, edges };
+      }else{
+          return { ...state, nodes };
+      }
+      
+    
     }
     case ACTIONS.ADD_EDGES: {
       const newEdges = getDiffEdges(action.payload, state.edges);

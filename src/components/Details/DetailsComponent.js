@@ -194,6 +194,12 @@ class Details extends React.Component {
       this.props.network.options['physicsOnDrag']=enabled;
     }
   }
+  onToggleMergeExistingNodes(enabled){
+    this.props.dispatch({ type: ACTIONS.SET_MERGE_EXISTING_NODES, payload: enabled });
+    if (this.props.network) {
+      this.props.network.options['mergeExistingNodes']=enabled;
+    }
+  }
 
   toggleDrawer() {
     this.props.dispatch({ type: ACTIONS.SET_TOGGLE_DRAWER });
@@ -510,6 +516,22 @@ class Details extends React.Component {
                     <Divider />
                   </Grid>
                   <Grid item xs={12} sm={12} md={12}>
+                    <Tooltip title="Eanble merge of existing nodes" aria-label="add">
+                    <FormControlLabel
+                      control={
+                        <Switch
+                          checked={this.props.mergeExistingNodes}
+                          onChange={() => { this.onToggleMergeExistingNodes(!this.props.mergeExistingNodes); }}
+                          value="node physics"
+                          color="primary"
+                        />
+                      }
+                      label="Merge of existing nodes"
+                    />
+                    </Tooltip>
+                    <Divider />
+                  </Grid>
+                  <Grid item xs={12} sm={12} md={12}>
                     <Tooltip title="Number of maximum nodes which should return from the query. Empty or 0 has no restrictions." aria-label="add">
                       <TextField label="Node Limit" type="Number" variant="outlined" size='small' value={this.props.nodeLimit} onChange={event => {
                         const limit = event.target.value;
@@ -684,6 +706,7 @@ export const DetailsComponent = connect((state)=>{
     nodeLimit: state.options.nodeLimit,
     isPhysicsEnabled: state.options.isPhysicsEnabled,
     isPhysicsOnDragEnabled: state.options.isPhysicsOnDragEnabled,
+    mergeExistingNodes: state.options.mergeExistingNodes,
     isConsoleModeEnabled: state.options.isConsoleModeEnabled,
     multilineInConsoleMode: state.options.multilineInConsoleMode,
     toggleDrawer: state.options.toggleDrawer,

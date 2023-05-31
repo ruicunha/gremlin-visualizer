@@ -7,6 +7,7 @@ const initialState = {
   isConsoleModeEnabled: false,
   isPhysicsEnabled: true,
   isPhysicsOnDragEnabled: false,
+  mergeExistingNodes: false,
   toggleDrawer: true,
   openDelete: false,
   openProperties: false,
@@ -99,6 +100,10 @@ export const reducer =  (state=initialState, action)=>{
     case ACTIONS.SET_IS_PHYSICS_ON_DRAG_ENABLED: {
       const isPhysicsOnDragEnabled = _.get(action, 'payload', true);
       return { ...state, isPhysicsOnDragEnabled };
+    }
+    case ACTIONS.SET_MERGE_EXISTING_NODES: {
+      const mergeExistingNodes = _.get(action, 'payload', true);
+      return { ...state, mergeExistingNodes };
     }
     case ACTIONS.ADD_QUERY_HISTORY: {
       if(state.queryHistory.indexOf(action.payload)>=0){
