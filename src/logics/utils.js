@@ -6,7 +6,22 @@ const selectRandomField = (obj) => {
   return firstKey;
 };
 
+export const getRemovedData =(nodes,updatedNodes) =>{
 
+  const nodesToRemove=[];
+  let edgesToRemove=[];
+
+  nodes.forEach(node=>{
+    if(!updatedNodes.find(updatedNode=>node.id===updatedNode.id) ){
+      nodesToRemove.push(node);
+    }
+
+  });
+  edgesToRemove=nodesToRemove.flatMap((node)=>node.edges)
+
+  return {nodesToRemove, edgesToRemove};
+
+}
 export const getNodesToRemove =(nodes,filter) =>{
 
    const nodesToRemove=[];

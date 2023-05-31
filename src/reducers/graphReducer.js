@@ -1,7 +1,7 @@
 import vis from 'vis-network';
 import _ from 'lodash';
 import { ACTIONS } from '../constants';
-import { getDiffNodes, getDiffEdges, findNodeById, getNodesToRemove, mergeNodeProperties,mergeNodes } from '../logics/utils';
+import { getDiffNodes, getDiffEdges, findNodeById, getNodesToRemove, mergeNodeProperties,mergeNodes ,getRemovedData} from '../logics/utils';
 
 const initialState = {
   network: null,
@@ -27,16 +27,29 @@ export const reducer =  (state=initialState, action)=>{
       return { ...state, network: action.payload };
     }
     case ACTIONS.ADD_NODES: {
-      const newNodes = getDiffNodes(action.payload, state.nodes);
-      const nodes = [...state.nodes, ...newNodes];
-      const removedEdgeIds =[];
 
       const mergeExistingNodes= state.network.options['mergeExistingNodes']!==undefined && state.network.options['mergeExistingNodes'];
+      let removedNodes=[];
+      let removedEdges=[];
     
-      if(mergeExistingNodes){
-          mergeNodes(nodes,action.payload, removedEdgeIds);
+      if(mergeExistingNodes && action.deleteUnexistingNodes){
+        const {nodesToRemove, edgesToRemove}= getRemovedData(state.nodes,action.payload);
+        removedNodes=[...nodesToRemove.map(node=>node.id)];
+        removedEdges=[...edgesToRemove.map(edge=>edge.id)];
       }
 
+
+      const newNodes = getDiffNodes(action.payload, state.nodes);
+      let nodes = [...state.nodes, ...newNodes];
+      const removedEdgeIds =[];
+
+   
+      if(mergeExistingNodes){
+          mergeNodes(nodes,action.payload, removedEdgeIds);
+          nodes=nodes.filter((node)=> {return removedNodes.indexOf(node.id)<0});
+          removedNodes.forEach(removedId=>state.nodeHolder.remove(removedId));
+      }
+     
       state.nodeHolder.add(newNodes);
 
       if(mergeExistingNodes){
@@ -44,10 +57,13 @@ export const reducer =  (state=initialState, action)=>{
             mergeNodeProperties(state.nodeHolder.get(node.id),node,[])
           });
       
-          const newEdges = state.edges.filter((edge)=>{return !removedEdgeIds.indexOf(edge.id)>=0})
+          const newEdges = state.edges.filter((edge)=>{return removedEdgeIds.indexOf(edge.id)<0 && removedEdges.indexOf(edge.id)<0})
           const edges = [ ...newEdges];
 
           removedEdgeIds.forEach((edgeId)=>{
+            state.edgeHolder.remove(edgeId);
+          });
+          removedEdges.forEach((edgeId)=>{
             state.edgeHolder.remove(edgeId);
           });
           return { ...state, nodes, edges };
