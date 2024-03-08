@@ -1,7 +1,7 @@
 import vis from 'vis-network';
 import _ from 'lodash';
 import { ACTIONS } from '../constants';
-import { getDiffNodes, getDiffEdges, findNodeById, getNodesToRemove, mergeNodeProperties,mergeNodes ,getRemovedData} from '../logics/utils';
+import { getDiffNodes, getDiffEdges, findNodeById, getNodesToRemove, mergeNodeProperties,mergeNodes ,getRemovedData, extractEdgesAndNodes} from '../logics/utils';
 
 const initialState = {
   network: null,
@@ -141,11 +141,22 @@ export const reducer =  (state=initialState, action)=>{
             })
             label=label.substring(1);
           }
-          state.nodeHolder.update({id:node.id, label: label});
+          state.nodeHolder.update({id:node.id, label: label , color: node.color});
           return {...node, label };
         }
         return node;
       });
+      return state;
+    }
+    case ACTIONS.REFRESH_NODE_COLORS: {
+      
+      const currentNodes = state.nodes;
+      for(const node of currentNodes){
+        node.label = node.type
+      }
+      const {nodes} = extractEdgesAndNodes(currentNodes, action.payload.labels, action.payload.isColorEnabled, action.payload.userInputField);
+
+      state.nodeHolder.update(nodes);
       return state;
     }
     default:

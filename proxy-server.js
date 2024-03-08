@@ -136,17 +136,19 @@ function convertProperties(p){
 }
 
 
-function makeQuery(query, nodeLimit) {
+function makeQuery(query, nodeLimit, edgeFilter) {
   const nodeLimitQuery = !isNaN(nodeLimit) && Number(nodeLimit) > 0 ? `.limit(${nodeLimit})`: '';
-  return `${query}${nodeLimitQuery}.dedup().as('node').project('id', 'label', 'properties', 'edges').by(__.id()).by(__.label()).by(__.valueMap().by(__.unfold())).by(__.outE().project('id', 'from', 'to', 'label', 'properties').by(__.id()).by(__.select('node').id()).by(__.inV().id()).by(__.label()).by(__.valueMap().by(__.unfold())).fold())`;
+  const filter = edgeFilter ? `${edgeFilter}.` : ``;
+  return `${query}${nodeLimitQuery}.dedup().as('node').project('id', 'label', 'properties', 'edges').by(__.id()).by(__.label()).by(__.valueMap().by(__.unfold())).by(__.outE().${filter}project('id', 'from', 'to', 'label', 'properties').by(__.id()).by(__.select('node').id()).by(__.inV().id()).by(__.label()).by(__.valueMap().by(__.unfold())).fold())`;
 }
 
-function makeCosmosQuery(query, nodeLimit) {
+function makeCosmosQuery(query, nodeLimit, edgeFilter) {
   const nodeLimitQuery = !isNaN(nodeLimit) && Number(nodeLimit) > 0 ? `.limit(${nodeLimit})`: '';
-  return `${query}${nodeLimitQuery}.dedup().as('node').project('id', 'label', 'properties', 'edges').by(__.id()).by(__.label()).by(__.valueMap()).by(__.outE().project('id', 'from', 'to', 'label', 'properties').by(__.id()).by(__.select('node').id() ).by(__.inV().id()).by(__.label()).by(__.valueMap()).fold())`;
+  const filter = edgeFilter ? `${edgeFilter}.` : ``;
+  return `${query}${nodeLimitQuery}.dedup().as('node').project('id', 'label', 'properties', 'edges').by(__.id()).by(__.label()).by(__.valueMap()).by(__.outE().${filter}project('id', 'from', 'to', 'label', 'properties').by(__.id()).by(__.select('node').id() ).by(__.inV().id()).by(__.label()).by(__.valueMap()).fold())`;
 }
 
-async function handleCosmosRequest(connection, query, nodeLimit,consoleMode) {
+async function handleCosmosRequest(connection, query, nodeLimit, consoleMode, edgeFilter) {
 
   if(consoleMode){
 
@@ -171,8 +173,7 @@ async function handleCosmosRequest(connection, query, nodeLimit,consoleMode) {
 
     return origninalCosmosRequest(connection,query);
   }
-
-  const result = await  getCosmosClient(connection).submit(makeCosmosQuery(query, nodeLimit), {});
+  const result = await  getCosmosClient(connection).submit(makeCosmosQuery(query, nodeLimit, edgeFilter), {});
   return convertNodes(result._items);
 
 }
@@ -188,13 +189,13 @@ async function origninalCosmosRequest(connection, query) {
 }
 
 
-async function handleRequest(connection, query, nodeLimit) {
+async function handleRequest(connection, query, nodeLimit, edgeFilter) {
 
   if(consoleMode){
     return origninalGremlinRequest(connection,query);
   }
 
-  const result = await getGremlinClient(connection).submit(makeQuery(query, nodeLimit), {});
+  const result = await getGremlinClient(connection).submit(makeQuery(query, nodeLimit, edgeFilter), {});
   return nodesToJson(result._items);
 }
 
@@ -322,16 +323,17 @@ app.post('/query', (req, res, next) => {
 
   const consoleMode = req.body.consoleMode;
   const nodeLimit = req.body.nodeLimit;
+  const edgeFilter = req.body.edgeFilter;
   const query = req.body.query;
 
   const cosmosDBMode = connection.cosmosKey!=undefined;
 
   if(cosmosDBMode)
-    handleCosmosRequest(connection, query, nodeLimit,consoleMode)
+    handleCosmosRequest(connection, query, nodeLimit,consoleMode, edgeFilter)
     .then((result) => res.send(result))
     .catch((err) => next(err));
   else 
-    handleRequest(connection, query, nodeLimit,consoleMode)
+    handleRequest(connection, query, nodeLimit,consoleMode, edgeFilter)
         .then((result) => res.send(result))
     .catch((err) => next(err));
 

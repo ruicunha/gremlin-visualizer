@@ -1,4 +1,6 @@
 import _ from 'lodash';
+import tinycolor from "tinycolor2";
+import { LIGHT_THRESHOLD, DARK_THRESHOLD, BASE_COLORS, BASE_COLORS_PALETTE } from '../constants';
 
 const selectRandomField = (obj) => {
   let firstKey;
@@ -97,23 +99,25 @@ export const getDiffEdges = (newList, oldList) => {
   return _.differenceBy(newList, oldList, (edge) => `${edge.from},${edge.to}`);
 };
 
-export const extractEdgesAndNodes = (nodeList, nodeLabels=[]) => {
+export const extractEdgesAndNodes = (nodeList, nodeLabels = [], isColorGradientEnabled, userInputField) => {
   let edges = [];
   const nodes = [];
 
   const nodeLabelMap =_.mapValues( _.keyBy(nodeLabels, 'type'), 'field');
- // console.log(nodeLabelMap);
-  
-  _.forEach(nodeList, (node) => {
 
-  //  console.log(node);
-   // console.log(node.label)
+  let baseColorPointer = 0;
+  let palettePointer = 0;
+  let isDarkSide = false;
+
+  const colorGroupByLabelMap = new Map();
+  const colorGroupByCustomGroupMap = new Map();
+
+  _.forEach(nodeList, (node) => {
 
     const type = node.label;
     if (!nodeLabelMap[type]) {
       const field = node.properties.kind && node.properties.name? 'name':selectRandomField(node.properties);
       const nodeLabel = { type, field };
-     // console.log(nodeLabel);
       nodeLabels.push(nodeLabel);
       nodeLabelMap[type] = field;
     }
@@ -129,14 +133,84 @@ export const extractEdgesAndNodes = (nodeList, nodeLabels=[]) => {
       label=label.substring(1);
     }
 
-    nodes.push({ id: node.id, label: String(label),shape:getNodeShape(node), group: node.label, properties: node.properties, type, edges: node.edges });
+    const isCustomColor = isColorGradientEnabled && ( node.properties.kind ||userInputField );
 
-    edges = edges.concat(_.map(node.edges, edge => ({ ...edge, label:getEdgeLabel(edge), type: edge.label, dashes:isDashed(edge), arrows: { to: { enabled: true, type:node.label==='NetworkFunction'?"circle":"arrow", scaleFactor: 0.5 } }})));
+    if(!isCustomColor) {
+      nodes.push({ id: node.id, label: String(label),shape:getNodeShape(node), group: node.label, properties: node.properties, type, edges: node.edges });
+      edges = edges.concat(_.map(node.edges, edge => ({ ...edge, label: getEdgeLabel(edge), type: edge.label, dashes: isDashed(edge), arrows: { to: { enabled: true, type: node.label === 'NetworkFunction' ? "circle" : "arrow", scaleFactor: 0.5 } } })));
+      return;
+    }
 
+    const nodeField = userInputField ? (node.properties[userInputField] || "") : node.properties.kind;
+
+    const groupString = `${node.label}:${nodeField}`;
+    let newNode;
+
+    if (!colorGroupByLabelMap.has(node.label)) {
+      node.label === "NetworkFunction" ?
+        setColorMaps(colorGroupByLabelMap, colorGroupByCustomGroupMap, groupString, node, BASE_COLORS_PALETTE, palettePointer) :
+        setColorMaps(colorGroupByLabelMap, colorGroupByCustomGroupMap, groupString, node, BASE_COLORS, baseColorPointer);
+        
+      baseColorPointer++;
+      newNode = { id: node.id, label: String(label), shape: getNodeShape(node), group: node.label, properties: node.properties, type, edges: node.edges, color: colorGroupByLabelMap.get(node.label).color }
+    }
+    else if (!colorGroupByCustomGroupMap.has(groupString)) {
+
+      let { color, level } = colorGroupByLabelMap.get(node.label);
+      let shadedColor;
+      ({ shadedColor, isDarkSide, level } = shadeColor(isDarkSide, color, level));
+
+      if (node.label === "NetworkFunction" && shadedColor.getBrightness() < DARK_THRESHOLD) {
+        isDarkSide = false;
+        palettePointer++;
+        color = BASE_COLORS_PALETTE[palettePointer];
+        level = 1;
+        colorGroupByCustomGroupMap.set(groupString, color);
+      }
+      else {
+        colorGroupByCustomGroupMap.set(groupString, shadedColor.toString());
+        level++;
+      }
+      colorGroupByLabelMap.set(node.label, { color, level })
+      newNode = { id: node.id, label: String(label), shape: getNodeShape(node), group: node.label, properties: node.properties, type, edges: node.edges, color: colorGroupByCustomGroupMap.get(groupString) }
+    }
+    else {
+      newNode = { id: node.id, label: String(label), shape: getNodeShape(node), group: node.label, properties: node.properties, type, edges: node.edges, color: colorGroupByCustomGroupMap.get(groupString) }
+    }
+    
+    baseColorPointer = recycleColor(baseColorPointer, colorGroupByLabelMap, node, BASE_COLORS);
+    palettePointer = recycleColor(palettePointer, colorGroupByLabelMap, node, BASE_COLORS_PALETTE);
+
+    nodes.push(newNode);
+    edges = edges.concat(_.map(node.edges, edge => ({ ...edge, label: getEdgeLabel(edge), type: edge.label, dashes: isDashed(edge), arrows: { to: { enabled: true, type: node.label === 'NetworkFunction' ? "circle" : "arrow", scaleFactor: 0.5 } } })));
   });
-
   return { edges, nodes, nodeLabels }
 };
+
+export const shadeColor = (isDarkSide, color, level, shadeFactor = 7.5) => {
+  let shadedColor = isDarkSide ?
+    tinycolor(color).darken((level - 1) * shadeFactor) :
+    tinycolor(color).lighten((level - 1) * shadeFactor);
+
+  if (shadedColor.getBrightness() > LIGHT_THRESHOLD) {
+    isDarkSide = true;
+    level = 2;
+  }
+  return { shadedColor, isDarkSide, level };
+}
+
+export const recycleColor = (colorPointer, colorMap, node, colors) => {
+  if (colorPointer === colors.length) {
+    colorPointer = 0;
+    colorMap.set(node.label, { color: colors[colorPointer], level: 1 });
+  }
+  return colorPointer;
+}
+
+export const setColorMaps = (colorMap, colorCustomMap, groupString, node, colors, pointer) => {
+  colorMap.set(node.label, { color: colors[pointer], level: 1 });
+  colorCustomMap.set(groupString, colors[pointer]);
+}
 
 export const getNodeShape = (node) => {
   switch(node.label) { 

@@ -28,6 +28,7 @@ import {
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import AddIcon from '@mui/icons-material/Add';
 import { styled } from '@mui/material/styles';
+import ClearIcon from '@mui/icons-material/Clear';
 import DeleteIcon from '@mui/icons-material/Delete';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
@@ -143,6 +144,14 @@ class Details extends React.Component {
     this.props.dispatch({ type: ACTIONS.REMOVE_NODE_LABEL, payload: index });
   }
 
+  onEditEdgeFilter(edgeFilter) {
+    this.props.dispatch({ type: ACTIONS.SET_EDGE_FILTER, payload: edgeFilter });
+  }
+
+  onEditUserInputField(userInputField) {
+    this.props.dispatch({ type: ACTIONS.SET_USER_INPUT_FIELD, payload: userInputField });
+  }
+
   onEditNodeLimit(limit) {
     this.props.dispatch({ type: ACTIONS.SET_NODE_LIMIT, payload: limit });
   }
@@ -159,10 +168,17 @@ class Details extends React.Component {
 
     axios.post(
       QUERY_ENDPOINT,
-      { name: this.props.name, host: this.props.host, port: this.props.port, query: query, nodeLimit: this.props.nodeLimit },
+      { 
+        name: this.props.name,
+        host: this.props.host,
+        port: this.props.port,
+        query: query,
+        nodeLimit: this.props.nodeLimit,
+        edgeFilter: this.props.edgeFilter 
+      },
       { headers: { 'Content-Type': 'application/json' } }
     ).then((response) => {
-      onFetchQuery(response, query, this.props.nodeLabels, this.props.dispatch);
+      onFetchQuery(response, query, this.props.nodeLabels, this.props.dispatch, this.props.isColorGradientEnabled, this.props.userInputField);
     }).catch((error) => {
       this.props.dispatch({ type: ACTIONS.SET_ERROR, payload: COMMON_GREMLIN_ERROR });
     });
@@ -176,6 +192,15 @@ class Details extends React.Component {
     this.props.dispatch({ type: ACTIONS.SET_MULTILINE_CONSOLE_MODE, payload: enabled });
   }
 
+  onToggleColorGradientByKind(enabled) {
+    this.props.dispatch({ type: ACTIONS.SET_IS_COLOR_GRADIENT_ENABLED, payload: enabled });
+
+    if (this.props.network) {
+      this.props.network.options['colorGradient'] = enabled;
+      this.props.dispatch({ type: ACTIONS.REFRESH_NODE_COLORS, payload: {labels: this.props.nodeLabels,
+        isColorEnabled: enabled} });
+    }
+  }
 
   onTogglePhysics(enabled){
     this.props.dispatch({ type: ACTIONS.SET_IS_PHYSICS_ENABLED, payload: enabled });
@@ -484,6 +509,41 @@ class Details extends React.Component {
                     <Divider />
                   </Grid>
                   <Grid item xs={12} sm={12} md={12}>
+                  <Tooltip title="Nodes colored by gradient grouped by input which should be a property of the node" aria-label="add">
+                            <FormControlLabel
+                              control={
+                                <Switch
+                                  checked={this.props.isColorGradientEnabled}
+                                  onChange={() => { this.onToggleColorGradientByKind(!this.props.isColorGradientEnabled); }}
+                                  value="gradient"
+                                  color="primary"
+                                />
+                              }
+                              label="Gradient coloration by label and input"
+                            />
+                          </Tooltip>
+                  </Grid>
+                  {this.props.isColorGradientEnabled && (
+                  <Grid item xs={12} sm={12} md={12}>
+                    <Tooltip title="Nodes colored by gradient grouped by input field. Default is kind" aria-label="add">
+                      <TextField multiline fullWidth label="Input Field" type="text" variant="outlined" size='small' value={this.props.userInputField} onChange={event => {
+                        const userInputField = event.target.value;
+                        this.onEditUserInputField(userInputField)
+                      }}
+                      InputProps={{
+                        endAdornment: (
+                          <IconButton onClick={() => this.onEditUserInputField("")}>
+                            <ClearIcon />
+                          </IconButton>
+                        ),
+                      }}
+                      />
+                    </Tooltip>
+                  </Grid>)}
+                  <Grid item xs={12} sm={12} md={12}>
+                    <Divider />
+                  </Grid>
+                  <Grid item xs={12} sm={12} md={12}>
                     <Tooltip title="Automatically stabilize the graph" aria-label="add">
                     <FormControlLabel
                       control={
@@ -516,7 +576,7 @@ class Details extends React.Component {
                     <Divider />
                   </Grid>
                   <Grid item xs={12} sm={12} md={12}>
-                    <Tooltip title="Eanble merge of existing nodes" aria-label="add">
+                    <Tooltip title="Enable merge of existing nodes" aria-label="add">
                     <FormControlLabel
                       control={
                         <Switch
@@ -529,6 +589,35 @@ class Details extends React.Component {
                       label="Merge of existing nodes"
                     />
                     </Tooltip>
+                    <Divider />
+                  </Grid>
+                  <Grid item xs={12} sm={12} md={12}>
+                    <Tooltip placement="bottom-start" arrow title={
+                      <span style={{ whiteSpace: 'pre-line', maxWidth: 'none' }}>
+                        {`Filter edges on projection query.
+                        Examples:\n
+                        Exclusion:
+                        not(or(__.inV().hasLabel('history'), __.outV().hasLabel('history')))\n
+                        Inclusion:
+                        or(__.inV().hasLabel('NetworkFunction'), __.outV().hasLabel('Cluster'))`}
+                      </span>
+                    }
+                     aria-label="add">
+                      <TextField multiline fullWidth label="Edge Filter" type="text" variant="outlined" size='small' value={this.props.edgeFilter} onChange={event => {
+                        const edgeFilter = event.target.value;
+                        this.onEditEdgeFilter(edgeFilter)
+                      }}
+                      InputProps={{
+                        endAdornment: (
+                          <IconButton onClick={() => this.onEditEdgeFilter("")}>
+                            <ClearIcon />
+                          </IconButton>
+                        ),
+                      }}
+                      />
+                    </Tooltip>
+                  </Grid>
+                  <Grid item xs={12} sm={12} md={12}>
                     <Divider />
                   </Grid>
                   <Grid item xs={12} sm={12} md={12}>
@@ -703,7 +792,10 @@ export const DetailsComponent = connect((state)=>{
     selectedEdge: state.graph.selectedEdge,
     queryHistory: state.options.queryHistory,
     nodeLabels: state.options.nodeLabels,
+    edgeFilter: state.options.edgeFilter,
+    userInputField: state.options.userInputField,
     nodeLimit: state.options.nodeLimit,
+    isColorGradientEnabled: state.options.isColorGradientEnabled,
     isPhysicsEnabled: state.options.isPhysicsEnabled,
     isPhysicsOnDragEnabled: state.options.isPhysicsOnDragEnabled,
     mergeExistingNodes: state.options.mergeExistingNodes,

@@ -21,16 +21,12 @@ class NetworkGraph extends React.Component{
     network.on("dragEnd", function (params) {
 
      if(network.options['physicsOnDrag']!==undefined || params.event.srcEvent.shiftKey){
-
         const nodeId = params.nodes && params.nodes.length > 0 ? params.nodes[0] : null;
         if(nodeId!=null){
           const enable= network.options['physicsOnDrag']!==undefined && network.options['physicsOnDrag'];
-          data.nodes.update({id:nodeId, physics: !(enable || params.event.srcEvent.shiftKey)});
+          data.nodes.update({id:nodeId, physics: !(enable || params.event.srcEvent.shiftKey), color: network.body.nodes[nodeId]._localColor});
         }
-
-
      }
-
     });
     network.on("selectEdge", (params) => {
       const edgeId = params.edges && params.edges.length === 1 ? params.edges[0] : null;

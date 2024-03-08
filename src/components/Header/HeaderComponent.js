@@ -75,10 +75,17 @@ class Header extends React.Component {
   }
 
   executeQuery(query) {
-  
     axios.post(
       QUERY_ENDPOINT,
-      { name: this.props.name, host: this.props.host, port: this.props.port, query: query, nodeLimit: this.props.nodeLimit,consoleMode: this.props.isConsoleModeEnabled },
+      { 
+        name: this.props.name,
+        host: this.props.host,
+        port: this.props.port,
+        query: query,
+        nodeLimit: this.props.nodeLimit,
+        edgeFilter: this.props.edgeFilter,
+        consoleMode: this.props.isConsoleModeEnabled
+      },
       { headers: { 'Content-Type': 'application/json' } }
     ).then((response) => {
       if(this.props.isConsoleModeEnabled){
@@ -87,7 +94,7 @@ class Header extends React.Component {
          else
            this.outputConsoleResponse(response.data)    
       }else{
-         onFetchQuery(response, this.props.query, this.props.nodeLabels, this.props.dispatch);
+         onFetchQuery(response, this.props.query, this.props.nodeLabels, this.props.dispatch, this.props.isColorGradientEnabled, this.props.userInputField);
        }
     }).catch((error) => {
       if(this.props.isConsoleModeEnabled){
@@ -187,7 +194,10 @@ export const HeaderComponent = connect((state)=>{
     edges: state.graph.edges,
     nodeLabels: state.options.nodeLabels,
     nodeLimit: state.options.nodeLimit,
+    edgeFilter: state.options.edgeFilter,
+    userInputField: state.options.userInputField,
     toggleDrawer: state.options.toggleDrawer,
+    isColorGradientEnabled: state.options.isColorGradientEnabled,
     isConsoleModeEnabled: state.options.isConsoleModeEnabled,
     multilineInConsoleMode: state.options.multilineInConsoleMode
   };

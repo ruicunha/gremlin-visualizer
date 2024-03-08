@@ -5,13 +5,17 @@ const initialState = {
   nodeLabels: [],
   queryHistory: [],
   isConsoleModeEnabled: false,
+  isColorGradientEnabled: true,
+  multilineInConsoleMode:false,
   isPhysicsEnabled: true,
   isPhysicsOnDragEnabled: false,
   mergeExistingNodes: false,
   toggleDrawer: true,
   openDelete: false,
   openProperties: false,
-  nodeLimit: 100,
+  edgeFilter: "",
+  userInputField: "",
+  nodeLimit: 300,
   networkOptions: {
     physics: {
       barnesHut: {
@@ -97,6 +101,10 @@ export const reducer =  (state=initialState, action)=>{
       const isPhysicsEnabled = _.get(action, 'payload', true);
       return { ...state, isPhysicsEnabled };
     }
+    case ACTIONS.SET_IS_COLOR_GRADIENT_ENABLED: {
+      const isColorGradientEnabled = _.get(action, 'payload', true);
+      return { ...state, isColorGradientEnabled };
+    }
     case ACTIONS.SET_IS_PHYSICS_ON_DRAG_ENABLED: {
       const isPhysicsOnDragEnabled = _.get(action, 'payload', true);
       return { ...state, isPhysicsOnDragEnabled };
@@ -140,6 +148,16 @@ export const reducer =  (state=initialState, action)=>{
       }
       return state;
     }
+    case ACTIONS.SET_EDGE_FILTER: {
+      const edgeFilter = action.payload;
+      return { ...state, edgeFilter };
+    }
+
+    case ACTIONS.SET_USER_INPUT_FIELD: {
+      const userInputField = action.payload;
+      return { ...state, userInputField };
+    }
+  
     case ACTIONS.SET_NODE_LIMIT: {
       const nodeLimit = action.payload;
       return { ...state, nodeLimit };
