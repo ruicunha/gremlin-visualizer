@@ -160,6 +160,11 @@ class Details extends React.Component {
     this.props.dispatch({ type: ACTIONS.REFRESH_NODE_LABELS, payload: this.props.nodeLabels });
   }
 
+  onRefreshColors() {
+    this.props.dispatch({ type: ACTIONS.REFRESH_NODE_COLORS, payload: {labels: this.props.nodeLabels,
+      isColorEnabled: true, userInputField: this.props.userInputField} });
+  }
+
   onTraverse(nodeId, direction) {
     this.executeQuery(`g.V('${nodeId}').${direction}()`);
   }
@@ -198,7 +203,7 @@ class Details extends React.Component {
     if (this.props.network) {
       this.props.network.options['colorGradient'] = enabled;
       this.props.dispatch({ type: ACTIONS.REFRESH_NODE_COLORS, payload: {labels: this.props.nodeLabels,
-        isColorEnabled: enabled} });
+        isColorEnabled: enabled, userInputField: this.props.userInputField} });
     }
   }
 
@@ -509,7 +514,7 @@ class Details extends React.Component {
                     <Divider />
                   </Grid>
                   <Grid item xs={12} sm={12} md={12}>
-                  <Tooltip title="Nodes colored by gradient grouped by input which should be a property of the node" aria-label="add">
+                  <Tooltip title="Nodes colored by gradient grouped by input (should be a property of the node). Example: label, name" aria-label="add">
                             <FormControlLabel
                               control={
                                 <Switch
@@ -519,17 +524,14 @@ class Details extends React.Component {
                                   color="primary"
                                 />
                               }
-                              label="Gradient coloration by label and input"
+                              label="Gradient coloration by input"
                             />
                           </Tooltip>
                   </Grid>
                   {this.props.isColorGradientEnabled && (
                   <Grid item xs={12} sm={12} md={12}>
-                    <Tooltip title="Nodes colored by gradient grouped by input field. Default is kind" aria-label="add">
-                      <TextField multiline fullWidth label="Input Field" type="text" variant="outlined" size='small' value={this.props.userInputField} onChange={event => {
-                        const userInputField = event.target.value;
-                        this.onEditUserInputField(userInputField)
-                      }}
+                    <Tooltip title="Nodes colored by gradient grouped by input field. Default is label, kind" aria-label="add">
+                      <TextField multiline fullWidth label="Input Field" type="text" variant="outlined" size='small' value={this.props.userInputField} onChange={event => this.onEditUserInputField(event.target.value)}
                       InputProps={{
                         endAdornment: (
                           <IconButton onClick={() => this.onEditUserInputField("")}>
@@ -537,7 +539,12 @@ class Details extends React.Component {
                           </IconButton>
                         ),
                       }}
-                      />
+                      />                  
+                    </Tooltip>
+                    <Tooltip title="Refresh nodes colors" aria-label="add">
+                      <Fab variant="circular" color="primary" size="small" onClick={this.onRefreshColors.bind(this)}>
+                        <RefreshIcon/>
+                      </Fab>
                     </Tooltip>
                   </Grid>)}
                   <Grid item xs={12} sm={12} md={12}>

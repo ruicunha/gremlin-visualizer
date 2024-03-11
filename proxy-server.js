@@ -189,7 +189,7 @@ async function origninalCosmosRequest(connection, query) {
 }
 
 
-async function handleRequest(connection, query, nodeLimit, edgeFilter) {
+async function handleRequest(connection, query, nodeLimit, consoleMode, edgeFilter) {
 
   if(consoleMode){
     return origninalGremlinRequest(connection,query);

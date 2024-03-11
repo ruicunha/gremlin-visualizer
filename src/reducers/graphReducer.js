@@ -154,7 +154,7 @@ export const reducer =  (state=initialState, action)=>{
       for(const node of currentNodes){
         node.label = node.type
       }
-      const {nodes} = extractEdgesAndNodes(currentNodes, action.payload.labels, action.payload.isColorEnabled, action.payload.userInputField);
+      const {nodes} = extractEdgesAndNodes(currentNodes, action.payload.isColorEnabled, action.payload.userInputField, action.payload.labels);
 
       state.nodeHolder.update(nodes);
       return state;
