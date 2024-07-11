@@ -1,3 +1,5 @@
+import EventEmitter from 'eventemitter3';
+
 const SERVER_URL = 'http://localhost:3001';
 export const QUERY_ENDPOINT = `${SERVER_URL}/query`;
 export const CONFIG_ENDPOINT = `${SERVER_URL}/config`;
@@ -38,11 +40,13 @@ export const ACTIONS = {
   SET_EDGE_FILTER: 'SET_EDGE_FILTER',
   SET_USER_INPUT_FIELD: 'SET_USER_INPUT_FIELD',
   SET_TOGGLE_DRAWER: 'SET_TOGGLE_DRAWER',
+  SET_TOGGLE_CONSOLE: 'SET_TOGGLE_CONSOLE',
+  PRINT_TERMINAL: 'PRINT_TERMINAL',
   OPEN_DELETE: 'OPEN_DELETE',
   OPEN_PROPERTIES: 'OPEN_PROPERTIES',
   SET_CASCADE_DELETE: 'SET_CASCADE_DELETE'
-  
 };
+
 export const BASE_COLORS_PALETTE = [
   "#F44336",
   "#E91E63",
@@ -62,3 +66,53 @@ export const BASE_COLORS =
     "#9E9E9E",
     "#795548",
   ]
+
+export const eventEmitter = new EventEmitter();
+
+export const COMMON_GREMLIN_STEPS = [
+  'addE',
+  'addV',
+  'and',
+  'as',
+  'by',
+  'coalesce',
+  'constant',
+  'count',
+  'dedup',
+  'drop',
+  'E',
+  'executionProfile',
+  'fold',
+  'g',
+  'group',
+  'has',
+  'hasLabel',
+  'inject',
+  'is',
+  'key',
+  'label',
+  'limit',
+  'local',
+  'not',
+  'optional',
+  'or',
+  'order',
+  'path',
+  'project',
+  'property',
+  'propertyMap',
+  'properties',
+  'range',
+  'repeat',
+  'sample',
+  'select',
+  'store',
+  'tree',
+  'unfold',
+  'union',
+  'value',
+  'values',
+  'valueMap',
+  'V',
+  'where'
+]

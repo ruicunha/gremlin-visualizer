@@ -11,6 +11,7 @@ const initialState = {
   isPhysicsOnDragEnabled: false,
   mergeExistingNodes: false,
   toggleDrawer: true,
+  toggleConsole: false,
   openDelete: false,
   openProperties: false,
   edgeFilter: "",
@@ -164,6 +165,9 @@ export const reducer =  (state=initialState, action)=>{
     }
     case ACTIONS.SET_TOGGLE_DRAWER: {
       return { ...state, toggleDrawer:!state.toggleDrawer };
+    }
+    case ACTIONS.SET_TOGGLE_CONSOLE: {
+      return { ...state, toggleConsole:!state.toggleConsole };
     }
     case ACTIONS.OPEN_DELETE: {
       return { ...state, openDelete: action.payload};

@@ -6,6 +6,12 @@
     "queries":[
         "g.V()"
 
+    ],
+
+    "colorInputs": [
+    ],
+    
+    "edgeFilters": [
     ]
 
 

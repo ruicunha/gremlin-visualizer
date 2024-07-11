@@ -235,6 +235,11 @@ class Details extends React.Component {
     this.props.dispatch({ type: ACTIONS.SET_TOGGLE_DRAWER });
   }
 
+  toggleConsoleDrawer() {
+    this.props.dispatch({ type: ACTIONS.SET_TOGGLE_CONSOLE });
+  }
+
+
   generateList(list) {
     let key = 0;
     return [...list].reverse().map(value => {
@@ -487,7 +492,10 @@ class Details extends React.Component {
                       control={
                         <Switch
                           checked={this.props.isConsoleModeEnabled}
-                          onChange={() => { this.onToggleConsoleMode(!this.props.isConsoleModeEnabled); }}
+                          onChange={() => { 
+                            this.onToggleConsoleMode(!this.props.isConsoleModeEnabled);
+                            this.toggleConsoleDrawer();
+                           }}
                           value="node physics"
                           color="primary"
                         />

@@ -2,7 +2,7 @@ import React from 'react';
 import { connect } from 'react-redux';
 import { Button, TextField }  from '@mui/material';
 import axios from 'axios';
-import { ACTIONS, QUERY_ENDPOINT, CONFIG_ENDPOINT,COMMON_GREMLIN_ERROR } from '../../constants';
+import { ACTIONS, QUERY_ENDPOINT, CONFIG_ENDPOINT,COMMON_GREMLIN_ERROR, eventEmitter } from '../../constants';
 import { onFetchQuery } from '../../logics/actionHelper';
 import AppBar from '@mui/material/AppBar';
 import IconButton from '@mui/material/IconButton';
@@ -19,6 +19,19 @@ let hosts = [];
 let queries = [];
 let globalQueries = [];
 class Header extends React.Component {
+
+  componentDidMount() {
+    eventEmitter.on('gremlinQueryData', this.handleGremlinQueryData);
+  }
+
+  componentWillUnmount() {
+    eventEmitter.off('gremlinQueryData', this.handleGremlinQueryData);
+  }
+
+  handleGremlinQueryData = (data) => {
+    this.props.dispatch({ type: ACTIONS.SET_ERROR, payload: null });
+    this.executeQuery(data);
+  }
 
   getConfig() {
 
@@ -62,7 +75,6 @@ class Header extends React.Component {
   }
 
   outputConsoleResponse(data){
-
     if(data.result){
       console.log(JSON.stringify(data.result, null, 4))
     }else{
@@ -70,8 +82,14 @@ class Header extends React.Component {
         console.log(JSON.stringify(dataItem.result, null, 4))
       }
     }
+  }
 
+  outputConsoleResponseTerminal(data){
+    eventEmitter.emit("gremlinData", data);
+  }
 
+  onGremlinError(data){
+    eventEmitter.emit("gremlinError", data);
   }
 
   executeQuery(query) {
@@ -89,15 +107,18 @@ class Header extends React.Component {
       { headers: { 'Content-Type': 'application/json' } }
     ).then((response) => {
       if(this.props.isConsoleModeEnabled){
-        if(response.data.error)
-           console.error(JSON.stringify(response.data.error, null, 4));
-         else
+        this.outputConsoleResponseTerminal(response.data);
+        if(response.data.error){
+          console.error(JSON.stringify(response.data.error, null, 4));
+        }
+        else
            this.outputConsoleResponse(response.data)    
-      }else{
+      } else{
          onFetchQuery(response, this.props.query, this.props.nodeLabels, this.props.dispatch, this.props.isColorGradientEnabled, this.props.userInputField);
        }
     }).catch((error) => {
       if(this.props.isConsoleModeEnabled){
+        this.onGremlinError(error);
         console.error(error);
      }else{
       this.props.dispatch({ type: ACTIONS.SET_ERROR, payload: COMMON_GREMLIN_ERROR });
@@ -167,15 +188,15 @@ class Header extends React.Component {
           </form>
           <div style={{color: 'white'}}>{this.props.error}</div>
           </Box>
-            <IconButton
-                  color="inherit"
-                  aria-label="open drawer"
-                  edge="start"
-                  onClick={(event => this.toggleDrawer())}
-                  
-              >
-                  <MenuIcon />
-              </IconButton>
+          <IconButton
+                color="inherit"
+                aria-label="open drawer"
+                edge="start"
+                onClick={(event => this.toggleDrawer())}
+                
+            >
+                <MenuIcon />
+            </IconButton>
 
       </Toolbar>
     </AppBar>

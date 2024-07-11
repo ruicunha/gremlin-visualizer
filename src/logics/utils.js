@@ -116,7 +116,7 @@ export const extractEdgesAndNodes = (nodeList, isColorGradientEnabled, userInput
 
     const type = node.label;
     let label = determineLabel(nodeLabelMap, type, node, nodeLabels);
-    const isCustomColor = isColorGradientEnabled && ( node.properties.kind ||userInputField );
+    const isCustomColor = isColorGradientEnabled && ( node.properties.kind || userInputField );
 
     if(!isCustomColor) {
       nodes.push({ id: node.id, label: String(label),shape:getNodeShape(node), group: node.label, properties: node.properties, type, edges: node.edges });
@@ -192,22 +192,26 @@ export const determineLabel = (nodeLabelMap, type, node, nodeLabels) => {
 
 export const getGroupInfo = (node, inputField) => {
   let mainField = node.label;
-  let nodeField = node.properties.kind;
+  let nodeField;
 
   if(inputField){
     const inputArray = inputField.split(",");
     if(inputArray[0].length > 0 && inputArray[0] !== "label") {
-      mainField = node.properties[inputArray[0]];
+      mainField = node.properties[inputArray[0]] ? node.properties[inputArray[0]] : node.label;
     }
 
-    inputArray.forEach((input) => {
-      const nodeProperty = node.properties[input.trim()];
+    inputArray.slice(1, inputArray.length).forEach((input) => {
+      const trimmedInput = input.trim();
+      const nodeProperty = trimmedInput == "label" ? node.label : node.properties[trimmedInput];
       if(nodeProperty) {
         nodeField = nodeField ? `${nodeField}:${nodeProperty}` : `${nodeProperty}`;
       }
     })
   } 
-  return {mainField: mainField, groupString:`${mainField}:${nodeField}`};
+  else{
+    nodeField = node.properties.kind;
+  }
+  return {mainField: mainField, groupString:`${mainField}:${nodeField ?? ""}`};
 }
 
 export const shadeColor = (isDarkSide, color, level, shadeFactor = 7.5) => {
@@ -287,10 +291,7 @@ export const getTableData = (obj) => {
 };
 
 export const mergeNodeProperties= (node, updatedNode,deletedEdges) => {
-
-  for (const [k, v] of Object.entries(updatedNode.properties)) {
-    node.properties[k]=v;
-  }
+  node.properties = updatedNode.properties
   node.edges.forEach(edge => {
     if(!updatedNode.edges.find((updateEdge)=>edge.id===updateEdge.id)){
       deletedEdges.push(edge.id)
@@ -300,7 +301,6 @@ export const mergeNodeProperties= (node, updatedNode,deletedEdges) => {
 }
 
 export const mergeNodes= (nodes, updatedNodes, deletedEdges) => {
-
   updatedNodes.forEach(updatedNode => {
     mergeNodeProperties(nodes.find((node)=>node.id===updatedNode.id),updatedNode ,deletedEdges);
   });
