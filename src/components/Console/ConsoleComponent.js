@@ -13,12 +13,13 @@ import CloseFullscreenIcon from '@mui/icons-material/CloseFullscreen';
 import NotInterestedIcon from '@mui/icons-material/NotInterested';
 import { Terminal } from "xterm";
 import "xterm/css/xterm.css";
-import { ACTIONS, COMMON_GREMLIN_STEPS, eventEmitter } from '../../constants';
+import { ACTIONS, eventEmitter } from '../../constants';
 import { FitAddon } from '@xterm/addon-fit';
 import * as Prism from 'prismjs';
 import 'prismjs/components/prism-json';
 import { SearchAddon } from 'xterm-addon-search';
 import SuggestionManager from './SuggestionManager';
+import Cursor from './Cursor';
 
 class Console extends React.Component {
   visualizerConsole;
@@ -29,17 +30,7 @@ class Console extends React.Component {
   buffer = "";
   shellPrompt = "gremlin-console$ ";
   suggestionManager;
-
-  cursor = {
-    position: this.shellPrompt.length,
-    minPosition: this.shellPrompt.length,
-    reset: () =>{
-      this.cursor.position = this.cursor.minPosition;
-    },
-    inc: () => this.cursor.position++,
-    dec: () => this.cursor.position--,
-    setPosition: (position) => this.cursor.position = position + this.cursor.minPosition
-  }
+  cursor
 
   history = {
     commands: [],
@@ -68,6 +59,7 @@ class Console extends React.Component {
     this.fitAddon = new FitAddon();
     this.searchAddon = new SearchAddon();
     this.suggestionManager = new SuggestionManager();
+    this.cursor = new Cursor(this.shellPrompt.length);
   }
 
   componentDidMount() {
@@ -145,11 +137,13 @@ class Console extends React.Component {
   }
 
   handleArrowUp() {
-    if (this.suggestionManager.isValidUpCycle()) {
-      const suggestion = this.suggestionManager.cycleUp(this.buffer);
-      this.visualizerConsole.write('\x1b[2K\r');
-      this.visualizerConsole.write(`${this.shellPrompt}${this.buffer}${suggestion}`);
-      this.visualizerConsole.write(`\x1b[${this.cursor.position + 1}G`)
+    if (this.suggestionManager.hasSuggestion()){
+      if (this.suggestionManager.isValidUpCycle()) {
+        const suggestion = this.suggestionManager.cycleUp(this.buffer);
+        this.visualizerConsole.write('\x1b[2K\r');
+        this.visualizerConsole.write(`${this.shellPrompt}${this.buffer}${suggestion}`);
+        this.visualizerConsole.write(`\x1b[${this.cursor.getEndPosition()}G`)
+      }
       return;
     }
     if(this.history.commands.length < 1){
@@ -167,14 +161,15 @@ class Console extends React.Component {
   }
 
   handleArrowDown() {
-    if (this.suggestionManager.isValidDownCycle()) {
-      const suggestion = this.suggestionManager.cycleDown(this.buffer);
-      this.visualizerConsole.write('\x1b[2K\r');
-      this.visualizerConsole.write(`${this.shellPrompt}${this.buffer}${suggestion}`);
-      this.visualizerConsole.write(`\x1b[${this.cursor.position + 1}G`)
-      return;
+    if (this.suggestionManager.hasSuggestion()){
+      if (this.suggestionManager.isValidDownCycle()) {
+        const suggestion = this.suggestionManager.cycleDown(this.buffer);
+        this.visualizerConsole.write('\x1b[2K\r');
+        this.visualizerConsole.write(`${this.shellPrompt}${this.buffer}${suggestion}`);
+        this.visualizerConsole.write(`\x1b[${this.cursor.getEndPosition()}G`)
+      }
+    return;
     }
-
     if(this.history.commands.length < 1){
       return;
     }
@@ -189,23 +184,17 @@ class Console extends React.Component {
   }
 
   handleArrowLeft() {
-    if(this.buffer.length < 1){
+    if(this.buffer.length < 1 || !this.cursor.isValidMoveLeft()){
       return;
     }
-    if(this.cursor.position > this.cursor.minPosition){
-      this.cursor.dec();
-      this.visualizerConsole.write('\x1b[D'); //moveLeft
-    }
+    this.cursor.moveLeft(this.visualizerConsole);
   }
 
   handleArrowRight() {
-    if(this.buffer.length < 1){
+    if(this.buffer.length < 1 || !this.cursor.isValidMoveRight(this.buffer)){
       return;
     }
-    if(this.cursor.position < this.buffer.length + this.cursor.minPosition) {
-      this.cursor.inc();
-      this.visualizerConsole.write('\x1b[C'); //moveRight
-    }
+    this.cursor.moveRight(this.visualizerConsole);
   }
 
   handleSendCommand() {
@@ -230,29 +219,26 @@ class Console extends React.Component {
     }
     this.buffer = "";
     this.cursor.reset();
+    this.suggestionManager.reset();
   }
 
   handleWrite(data) {
-    
     let suggestion = "";
     if(data){
-      this.buffer = `${this.buffer.slice(0, this.cursor.position - this.cursor.minPosition)}${data}${this.buffer.slice(this.cursor.position - this.cursor.minPosition)}`;
-      console.log("handleWrite", this.buffer.toString(), data.toString())
+      this.buffer = this.cursor.getCommand(this.buffer, data);
       this.cursor.inc();
       suggestion = this.suggestionManager.getSuggestion(data, this.buffer);
     }
     else{
-      this.buffer = `${this.buffer.slice(0, this.cursor.position - 1 - this.cursor.minPosition)}${this.buffer.slice(this.cursor.position - this.cursor.minPosition)}`;
-      if(this.cursor.position > this.cursor.minPosition){
-        this.cursor.dec();
-      }
+      this.buffer = this.cursor.getCommand(this.buffer);
+      this.cursor.dec();
       if (this.buffer.length > 0) {
         suggestion = this.suggestionManager.getSuggestion(this.buffer[this.buffer.length - 1], this.buffer);
       }
     }
     this.visualizerConsole.write('\x1b[2K\r');
     this.visualizerConsole.write(`${this.shellPrompt}${this.buffer}${suggestion}`);
-    this.visualizerConsole.write(`\x1b[${this.cursor.position + 1}G`); //move cursor to new position
+    this.visualizerConsole.write(`\x1b[${this.cursor.getEndPosition()}G`); //move cursor to new position
   }
 
   handleGremlinData = (data) =>{
@@ -327,7 +313,7 @@ class Console extends React.Component {
     this.cursor.setPosition(this.buffer.length);
     this.visualizerConsole.write('\x1b[2K\r');
     this.visualizerConsole.write(`${this.shellPrompt}${this.buffer}`);
-    this.visualizerConsole.write(`\x1b[${this.cursor.position + 1}G`);
+    this.visualizerConsole.write(`\x1b[${this.cursor.getEndPosition()}G`);
     this.suggestionManager.reset();
   }
 
